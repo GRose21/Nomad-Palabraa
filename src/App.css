@@ -145,7 +145,8 @@ main { grid-column: 2; min-width: 0; }
 .learn-level-heading p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .learn-level-heading > small { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .course-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
-.course-plan-card { min-width: 0; display: flex; flex-direction: column; padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); }
+.course-plan-card { min-width: 0; display: flex; flex-direction: column; padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); cursor: pointer; transition: transform .18s, border-color .18s, box-shadow .18s; }
+.course-plan-card:hover { transform: translateY(-2px); border-color: var(--green); box-shadow: var(--shadow); }
 .course-plan-card.next { border-color: var(--green); box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 12%, transparent); }
 .course-plan-card.complete { background: color-mix(in srgb, var(--mint) 23%, var(--card)); }
 .course-plan-card > span { color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: .8px; }
@@ -172,7 +173,8 @@ main { grid-column: 2; min-width: 0; }
 .grammar-level-heading p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .grammar-level-heading > small { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .grammar-lesson-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
-.grammar-lesson-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 188px; padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); }
+.grammar-lesson-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 188px; padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); cursor: pointer; transition: transform .18s, border-color .18s, box-shadow .18s; }
+.grammar-lesson-card:hover { transform: translateY(-2px); border-color: var(--green); box-shadow: var(--shadow); }
 .grammar-lesson-card.complete { border-color: #abd7bd; }
 .grammar-lesson-card > span { color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: 1px; }
 .grammar-lesson-card.complete > span { color: var(--green); }

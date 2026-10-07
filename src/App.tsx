@@ -461,7 +461,9 @@ function App() {
     ? storedState.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && coursePlanIds.has(id))
     : []
   const [page, setPage] = useState<Page>('dashboard')
-  const [level, setLevel] = useState<Level>(() => isLevel(storedState.level) ? storedState.level : 'B1')
+  const [level, setLevel] = useState<Level | null>(() =>
+    storedState.assessmentCompleted === true && isLevel(storedState.level) ? storedState.level : null,
+  )
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
@@ -510,7 +512,7 @@ function App() {
   const [weekDays] = useState(() => getWeekDays(new Date()))
 
   const applyProgressState = useCallback((state: Record<string, unknown>) => {
-    setLevel(isLevel(state.level) ? state.level : 'B1')
+    setLevel(state.assessmentCompleted === true && isLevel(state.level) ? state.level : null)
     const dailyState = getDailyMinutes({
       minutes: typeof state.minutes === 'number' && Number.isFinite(state.minutes) && state.minutes >= 0 ? state.minutes : 0,
       lastActivityDate: isDateKey(state.lastActivityDate) ? state.lastActivityDate : undefined,
@@ -696,7 +698,7 @@ function App() {
 
       if (!hasProgress(initialProgress)) {
         initialProgress = {
-          level: 'B1',
+          level: null,
           minutes: 0,
           score: 0,
           assessmentCompleted: false,
@@ -790,7 +792,7 @@ function App() {
     speechRecognitionRef.current?.stop()
   }, [])
 
-  const currentLevel = levelData[level]
+  const currentLevel = level ? levelData[level] : null
   const learningStreak = getStreak(activeDates, currentDate)
   const visibleResources = useMemo(
     () => resources.filter((resource) => {
@@ -1135,16 +1137,16 @@ function App() {
                 <p>Build your Spanish through short assessments, meaningful media, and reading practice tuned to your CEFR level.</p>
                 <div className="hero-actions"><button className="white-button" onClick={startAssessment}>Take a quick test →</button><button className="text-button" onClick={() => navigate('resources')}>Explore resources</button></div>
               </div>
-              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>es</span><small>ESPANOL</small></div><b className="floating-badge one">B1</b><b className="floating-badge two">✓</b></div>
+              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>es</span><small>ESPANOL</small></div><b className="floating-badge one">{level ?? '?'}</b><b className="floating-badge two">✓</b></div>
             </section>
 
             <section className="dashboard-grid">
               <article className="card level-card">
-                <div className="card-title"><div><span className="eyebrow">CURRENT LEVEL</span><h3>{currentLevel.label} · {currentLevel.title}</h3></div><span className="level-badge">{currentLevel.label}</span></div>
-                <p>{currentLevel.description}</p>
-                <div className="progress-bar"><span style={{ width: `${currentLevel.progress}%` }} /></div>
+                <div className="card-title"><div><span className="eyebrow">CURRENT LEVEL</span><h3>{currentLevel ? `${currentLevel.label} · ${currentLevel.title}` : 'Not assessed yet'}</h3></div><span className="level-badge">{currentLevel?.label ?? '—'}</span></div>
+                <p>{currentLevel?.description ?? 'Take the short CEFR assessment to find your starting point and personalize your study plan.'}</p>
+                <div className="progress-bar"><span style={{ width: `${currentLevel?.progress ?? 0}%` }} /></div>
                 <div className="level-scale"><span>A1</span><span>A2</span><span>B1</span><span>B2</span><span>C1</span><span>C2</span></div>
-                <button className="secondary-button" onClick={startAssessment}>Reassess my level →</button>
+                <button className="secondary-button" onClick={startAssessment}>{currentLevel ? 'Reassess my level →' : 'Take the assessment →'}</button>
               </article>
 
               <article className="card streak-card">
@@ -1183,10 +1185,10 @@ function App() {
                 </div>
               ) : (
                 <div className="result-view">
-                  <div className="result-badge">{level}</div>
+                  <div className="result-badge">{level ?? '—'}</div>
                   <span className="eyebrow">ASSESSMENT COMPLETE</span>
-                  <h3>{currentLevel.title}</h3>
-                  <p>{currentLevel.description} Your score was {score} out of {assessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
+                  <h3>{currentLevel?.title ?? 'Assessment complete'}</h3>
+                  <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {assessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
                   <button className="primary-button" onClick={() => navigate('learn')}>View my plan →</button>
                 </div>
               )}
@@ -1279,12 +1281,12 @@ function App() {
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
                       const isComplete = completedLearnLessons.includes(item.id)
                       const isNext = nextLearnLesson?.id === item.id
-                      return <article className={`course-plan-card${isComplete ? ' complete' : ''}${isNext ? ' next' : ''}`} key={item.id}>
+                      return <article className={`course-plan-card${isComplete ? ' complete' : ''}${isNext ? ' next' : ''}`} key={item.id} onClick={() => startPlan(item)}>
                         <span>{isComplete ? '✓ COMPLETE' : isNext ? 'START HERE' : `LESSON ${String(index + 1).padStart(2, '0')}`}</span>
                         <h4>{item.title}</h4>
                         <p>{item.detail}</p>
                         <div className="course-skill-tags"><span>Vocabulary</span><span>Grammar</span><span>Reading</span><span>Listening</span><span>Speaking</span></div>
-                        <div><small>{item.minutes}</small><button className="plan-start" onClick={() => startPlan(item)} aria-label={`${isComplete ? 'Review' : 'Start'} ${item.title}`}>{isComplete ? 'Review →' : isNext ? 'Start lesson →' : 'Open lesson →'}</button></div>
+                        <div><small>{item.minutes}</small><button className="plan-start" onClick={(event) => { event.stopPropagation(); startPlan(item) }} aria-label={`${isComplete ? 'Review' : 'Start'} ${item.title}`}>{isComplete ? 'Review →' : isNext ? 'Start lesson →' : 'Open lesson →'}</button></div>
                       </article>
                     })}</div>
                   </section>

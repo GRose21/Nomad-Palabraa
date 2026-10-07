@@ -75,11 +75,11 @@ function GrammarTab({ completedLessons, onComplete }: GrammarTabProps) {
                 {lessons.map((lesson, index) => {
                   const isComplete = completedSet.has(lesson.id)
                   return (
-                    <article className={`grammar-lesson-card${isComplete ? ' complete' : ''}`} key={lesson.id}>
+                    <article className={`grammar-lesson-card${isComplete ? ' complete' : ''}`} key={lesson.id} onClick={() => goToLesson(lesson)}>
                       <span>{isComplete ? '✓ COMPLETE' : `LESSON ${String(index + 1).padStart(2, '0')}`}</span>
                       <h4>{lesson.title}</h4>
                       <p>{lesson.summary}</p>
-                      <button className="plan-start" onClick={() => goToLesson(lesson)}>{isComplete ? 'Review lesson →' : 'Start lesson →'}</button>
+                      <button className="plan-start" onClick={(event) => { event.stopPropagation(); goToLesson(lesson) }}>{isComplete ? 'Review lesson →' : 'Start lesson →'}</button>
                     </article>
                   )
                 })}
