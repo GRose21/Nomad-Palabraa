@@ -8,14 +8,19 @@ import { getVocabulary } from './vocabulary'
 import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, italianGrammarLessons, italianGrammarLevels, italianLessonContent, italianLessonSupport, italianPlans, italianStarters, italianSupplementalLessons } from './italian'
 import { italianLevelVideoResources, spanishLevelVideoResources } from './resourceVideos'
 import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, type LearningLanguage } from './extraLanguages'
+import { buildDlptReadingResources } from './dlptPractice'
+import { formatCourseLevel, ilrDisclaimer } from './ilr'
+import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
+import DlptTab from './DlptTab'
+import PassageText from './PassageText'
 import { supabase } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'progress' | 'feedback'
+type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'dlpt' | 'progress' | 'feedback'
 type FeedbackCategory = 'bug' | 'recommendation' | 'other'
 type SpeechRecognitionAlternative = { transcript: string }
 type SpeechRecognitionResult = ArrayLike<SpeechRecognitionAlternative>
@@ -312,6 +317,7 @@ const navItems: Array<{ id: Page; label: string; icon: string }> = [
   { id: 'vocabulary', label: 'Vocabulary', icon: 'Aa' },
   { id: 'resources', label: 'Resources', icon: '▤' },
   { id: 'play', label: 'Play & practice', icon: '▶' },
+  { id: 'dlpt', label: 'DLPT reading', icon: '▤' },
   { id: 'progress', label: 'Progress', icon: '↗' },
   { id: 'feedback', label: 'Feedback', icon: '✉' },
 ]
@@ -324,6 +330,7 @@ const pageTitles: Record<Page, string> = {
   vocabulary: 'Spanish vocabulary',
   resources: 'Study library',
   play: 'Play & practice',
+  dlpt: 'DLPT-style reading practice',
   progress: 'Your progress',
   feedback: 'Feedback',
 }
@@ -416,7 +423,6 @@ function App() {
   const activeAssessmentQuestions = extraPack?.assessmentQuestions ?? (isItalian ? italianAssessmentQuestions : assessmentQuestions)
   const activeActivityCards = extraPack?.activityCards ?? (isItalian ? italianActivityCards : activityCards)
   const activePlans = isItalian ? italianPlans : plans
-  const activeLessonContent = extraPack?.lessonContent ?? (isItalian ? italianLessonContent : allLessonContent)
   const activeCoursePlans: CoursePlan[] = useMemo(() => extraPack ? [
       ...extraPack.starters.map((lesson, index) => ({
         id: `pre-a1-${index + 1}`, courseLevel: 'Pre-A1' as const, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
@@ -438,6 +444,13 @@ function App() {
           })),
         ]),
     ] : coursePlans, [isItalian, activePlans, extraPack])
+  const rawLessonContent = extraPack?.lessonContent ?? (isItalian ? italianLessonContent : allLessonContent)
+  const activeLessonContent: Record<string, LessonContent> = useMemo(() => Object.fromEntries(
+    Object.entries(rawLessonContent).map(([title, content]) => {
+      const courseLevel = activeCoursePlans.find((plan) => plan.title === title)?.courseLevel ?? 'A1'
+      return [title, { ...content, text: expandReadingContent(content.text, courseLevel, learningLanguage) }]
+    }),
+  ), [rawLessonContent, activeCoursePlans, learningLanguage])
   const currentGrammarLessonIds = useMemo(() => new Set(activeGrammarLessons.map((lesson) => lesson.id)), [activeGrammarLessons])
   const activeSupplementalLessonSupport = useMemo(() => Object.fromEntries(activeSupplementalLessons.map((lesson) => [
     lesson.title,
@@ -884,7 +897,7 @@ function App() {
   const activeResources: Resource[] = useMemo(() => extraPack
     ? [
       ...extraPack.resources,
-      ...Object.entries(extraPack.lessonContent).map(([title, content]) => ({
+      ...Object.entries(activeLessonContent).map(([title, content]) => ({
         type: 'reading' as const,
         title,
         description: `${learningLanguage} reading and comprehension practice: ${title}.`,
@@ -917,7 +930,8 @@ function App() {
         ],
       },
       ...italianLevelVideoResources,
-      ...Object.entries(italianLessonContent).map(([title, content]) => ({
+      ...buildDlptReadingResources(learningLanguage, italianSupplementalLessons),
+      ...Object.entries(activeLessonContent).map(([title, content]) => ({
         type: 'reading' as const,
         title,
         description: `Italian reading and comprehension practice: ${title}.`,
@@ -932,7 +946,10 @@ function App() {
         })),
       })),
     ]
-    : resources, [isItalian, extraPack, activeCoursePlans, learningLanguage])
+    : [
+      ...resources,
+      ...buildDlptReadingResources(learningLanguage, supplementalLessons),
+    ], [isItalian, extraPack, activeCoursePlans, activeLessonContent, learningLanguage])
   const resourceTypeFilters = ['all', 'video', 'reading'] as const
   const visibleResources = useMemo(
     () => activeResources.filter((resource) => {
@@ -944,6 +961,7 @@ function App() {
     }),
     [resourceFilter, resourceLevelFilter, activeResources],
   )
+  const dlptResources = activeResources.filter((resource) => resource.source === 'DLPT-style practice')
   const visibleActivityIndices = activeActivityCards
     .map((activity, index) => ({ activity, index }))
     .filter(({ activity }) => activityLevelFilter === 'all' || activity.level === activityLevelFilter)
@@ -1367,7 +1385,7 @@ function App() {
 
             <section className="dashboard-grid">
               <article className="card level-card">
-                <div className="card-title"><div><span className="eyebrow">CURRENT LEVEL</span><h3>{currentLevel ? `${currentLevel.label} · ${currentLevel.title}` : 'Not assessed yet'}</h3></div><span className="level-badge">{currentLevel?.label ?? '—'}</span></div>
+                <div className="card-title"><div><span className="eyebrow">CURRENT LEVEL</span><h3>{currentLevel ? `${currentLevel.label} · ${currentLevel.title}` : 'Not assessed yet'}</h3>{level && <small>{formatCourseLevel(level)}</small>}</div><span className="level-badge">{currentLevel?.label ?? '—'}</span></div>
                 <p>{currentLevel?.description ?? 'Take the short CEFR assessment to find your starting point and personalize your study plan.'}</p>
                 <div className="progress-bar"><span style={{ width: `${currentLevel?.progress ?? 0}%` }} /></div>
                 <div className="level-scale"><span>A1</span><span>A2</span><span>B1</span><span>B2</span><span>C1</span><span>C2</span></div>
@@ -1413,6 +1431,7 @@ function App() {
                   <div className="result-badge">{level ?? '—'}</div>
                   <span className="eyebrow">ASSESSMENT COMPLETE</span>
                   <h3>{currentLevel?.title ?? 'Assessment complete'}</h3>
+                  {level && <p><strong>{formatCourseLevel(level)}</strong></p>}
                   <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {activeAssessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
                   <button className="primary-button" onClick={() => navigate('learn')}>View my plan →</button>
                 </div>
@@ -1426,7 +1445,7 @@ function App() {
             {selectedPlan ? (
               <div className="plan-lesson">
                 <button className="back-button" onClick={() => setSelectedPlan(null)}>← Back to learning path</button>
-                <div className="section-heading"><div><span className="eyebrow">{selectedPlan.courseLevel} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><span className="level-badge">{selectedPlan.courseLevel}</span></div>
+                <div className="section-heading"><div><span className="eyebrow">{formatCourseLevel(selectedPlan.courseLevel)} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><span className="level-badge">{formatCourseLevel(selectedPlan.courseLevel)}</span></div>
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
                     <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
@@ -1451,7 +1470,7 @@ function App() {
                   <article className="plan-material">
                     <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span><button className="audio-button" onClick={() => selectedLessonContent && playActivityPhrase(selectedLessonContent.text)}><span aria-hidden="true">▶</span> Listen to passage</button></div>
                     <p className="learn-listening-prompt"><strong>Listening focus:</strong> {selectedSupport?.listeningPrompt}</p>
-                    <p lang={targetLanguageCode} dir={targetTextDirection}>{selectedLessonContent?.text}</p>
+                    {selectedLessonContent && <PassageText className="course-passage" text={selectedLessonContent.text} lang={targetLanguageCode} direction={targetTextDirection} />}
                   </article>
                   <article className="plan-comprehension">
                     <span className="eyebrow">READING · CHECK YOUR UNDERSTANDING</span>
@@ -1493,14 +1512,15 @@ function App() {
               </div>
             ) : (
               <>
-                <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
+                <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review. CEFR levels include an approximate ILR reading reference.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
+                <p className="ilr-disclaimer">{ilrDisclaimer}</p>
                 <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${activeCoursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / activeCoursePlans.length * 100}%` }} /></div>
                 {activeCourseLevels.map((courseLevel) => {
                   const levelLessons = activeCoursePlans.filter((plan) => plan.courseLevel === courseLevel)
                   const completedInLevel = levelLessons.filter((plan) => completedLearnLessons.includes(plan.id)).length
                   return <section className="learn-level" key={courseLevel}>
                     <div className="learn-level-heading">
-                      <div><span className="level-badge">{courseLevel}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
+                      <div><span className="level-badge">{formatCourseLevel(courseLevel)}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
                       <small>{completedInLevel} / {levelLessons.length} complete</small>
                     </div>
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
@@ -1530,7 +1550,7 @@ function App() {
             {selectedResource ? (
               <div className="lesson-view">
                 <button className="back-button" onClick={() => setSelectedResource(null)}>← Back to library</button>
-                <div className="lesson-hero"><div><span className="eyebrow">{selectedResource.type === 'video' ? 'VIDEO RESOURCE' : 'READING RESOURCE'}</span><h2>{selectedResource.title}</h2><p>{selectedResource.description}</p></div><span className="level-badge">{selectedResource.level}</span></div>
+                <div className="lesson-hero"><div><span className="eyebrow">{selectedResource.type === 'video' ? 'VIDEO RESOURCE' : 'READING RESOURCE'}</span><h2>{selectedResource.title}</h2><p>{selectedResource.description}</p></div><span className="level-badge">{selectedResource.level === 'Pre-A1' || isLevel(selectedResource.level) ? formatCourseLevel(selectedResource.level) : selectedResource.level}</span></div>
                 {selectedResource.type === 'video' && (
                   <>
                     {selectedResource.embedUrl
@@ -1543,7 +1563,7 @@ function App() {
                   <div className="reading-text">
                     <span className="reading-label">{selectedResource.type === 'video' ? 'ORIGINAL COMPANION TRANSCRIPT · NOT VERBATIM VIDEO CAPTIONS' : `${selectedResource.source} · ${selectedResource.tag}`}</span>
                     <button className="audio-button" onClick={() => selectedResource.passage && playActivityPhrase(selectedResource.passage)}><span aria-hidden="true">▶</span> Listen to {selectedResource.type === 'video' ? 'companion text' : 'passage'}</button>
-                    {selectedResource.passage && <p lang={targetLanguageCode} dir={targetTextDirection}>{selectedResource.passage}</p>}
+                    {selectedResource.passage && <PassageText className="resource-passage" text={selectedResource.passage} lang={targetLanguageCode} direction={targetTextDirection} />}
                   </div>
                   <div className="comprehension">
                     <h3>Check your understanding</h3>
@@ -1565,7 +1585,7 @@ function App() {
             ) : (
               <>
                 <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>{isItalian || extraPack ? 'Read & listen' : 'Watch, listen & read'}</h2><p>Graded passages, comprehension practice, and learning resources for every stage of your {learningLanguage} journey.</p><span className="question-count">{visibleResources.length} of {activeResources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{resourceTypeFilters.map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
-                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos' : 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos →' : 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
+                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos' : 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level === 'Pre-A1' || isLevel(resource.level) ? formatCourseLevel(resource.level) : resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos →' : 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
               </>
             )}
           </div>
@@ -1601,6 +1621,8 @@ function App() {
             </section>}
           </div>
         )}
+
+        {page === 'dlpt' && <DlptTab language={learningLanguage} resources={dlptResources} lang={targetLanguageCode} direction={targetTextDirection} />}
 
         {page === 'feedback' && (
           <div className="content">

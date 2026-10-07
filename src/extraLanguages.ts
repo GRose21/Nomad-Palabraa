@@ -20,6 +20,75 @@ type LanguageProfile = {
 
 const levels: GrammarLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const lessonMinutes: Record<GrammarLevel, number> = { A1: 12, A2: 16, B1: 20, B2: 24, C1: 28, C2: 32 }
+const readingExtensions: Record<AddedLanguage, Record<GrammarLevel, string>> = {
+  'Mandarin Chinese': {
+    A1: '在附近的社区，大家有简单的日常活动。早上，商店开门，学生去学校，邻居互相问好。广场上有树，也有长椅。人们在那里休息、聊天，然后回家。\n\n晚上，一些家庭一起散步。孩子们在广场上玩，大人坐下来休息。离家近的公共地方可以让邻居见面，也可以让人们认识自己的社区。',
+    A2: '城市里的图书馆不只是借书的地方。早上，有人看报纸，有人准备考试；下午，孩子们做作业，家庭参加免费的活动。工作人员也帮助读者寻找资料和使用电脑。\n\n但是，并不是每个人都能方便地去图书馆。有些居民住得很远，另一些人工作到很晚。因此，市政府正在考虑延长开放时间，并在不同社区安排活动。在改变服务以前，工作人员希望先了解居民的需要。',
+    B1: '一些居民建议改善市场旁边的广场。讨论时，有人希望增加树木和长椅，也有人指出人行道太窄，老人和推婴儿车的人不容易通过。市政府听取了这些意见，设计了一个新方案：保留商店门口的通道，并在不影响行人的地方种树。\n\n第一阶段只是试行，为期三个月。工作人员会观察广场的使用情况，也会询问居民、商店经营者和来访者。试行结束以后，大家会比较实际情况和最初的计划。如果某些变化没有达到目的，设计还可以调整。',
+    B2: '新的公共交通方案希望减少堵车和通勤时间。增加班次可能缩短等候时间，但公交车还需要方便地连接火车，也需要服务目前交通不便的社区。只增加车辆，并不能保证每个人都能顺利完成行程。\n\n计划也需要长期资金。购买车辆、雇用司机和维护设备都会产生费用，施工期间还可能影响现有路线。市政府应当公布评估标准，比较不同地区的结果，并听取依靠公共交通出行的人提出的意见。先进行小范围试行，有助于在全面实施以前发现没有预料到的问题。',
+    C1: '市政府的报告发现，增加公交班次以后，平均等候时间有所下降。不过，研究只持续了几个星期，比较的社区条件也不相同，而且没有排除所有影响准点率的因素。因此，观察到两项变化同时发生，并不能证明增加班次是唯一原因。\n\n平均数也可能掩盖不同乘客的实际经历。中心城区的数据改善时，郊区路线或夜间乘客的等候时间仍可能很长。报告建议延长观察时间，并按路线、时段和换乘情况分别分析数据。更完整的评估还应结合访谈，解释研究的局限，并说明结论适用于哪些地区。',
+    C2: '委员会没有否定改革本身，而是质疑现有方案能否在不把成本转移给其他群体的情况下实现目标。初步指标显示平均行车速度提高了，但这并不能说明换乘是否更加可靠，也没有反映中心城区与外围社区之间的差异。部分改善还可能与早已安排的时刻表调整有关。\n\n因此，同一组结果可以支持不同解释：投资可能带来了真实收益，也可能只是使部分路线受益，或者与测量方式有关。委员会要求在更长时期内收集可比较的数据，并分析不同班次对工作人员和乘客的影响。在证据更加充分以前，可以确认的只是部分行程有所改善；整个系统是否更加公平、稳定，还不能确定。',
+  },
+  'Modern Standard Arabic': {
+    A1: 'فِي الْحَيِّ أَنْشِطَةٌ يَوْمِيَّةٌ بَسِيطَةٌ. فِي الصَّبَاحِ يَفْتَحُ الْمَتْجَرُ أَبْوَابَهُ، وَيَذْهَبُ الطُّلَّابُ إِلَى الْمَدْرَسَةِ، وَيُحَيِّي الْجِيرَانُ بَعْضُهُمْ بَعْضًا. فِي السَّاحَةِ أَشْجَارٌ وَمَقَاعِدُ. يَجْلِسُ النَّاسُ هُنَاكَ وَيَتَحَدَّثُونَ قَلِيلًا.\n\nفِي الْمَسَاءِ تَتَنَزَّهُ بَعْضُ الأُسَرِ مَعًا. يَلْعَبُ الأَطْفَالُ، وَيَسْتَرِيحُ الْكِبَارُ. يُسَاعِدُ الْمَكَانُ الْقَرِيبُ مِنَ الْبَيْتِ عَلَى لِقَاءِ الْجِيرَانِ وَالتَّعَرُّفِ إِلَى الْحَيِّ.',
+    A2: 'لَا تُقَدِّمُ الْمَكْتَبَةُ فِي الْمَدِينَةِ الْكُتُبَ فَقَطْ. فِي الصَّبَاحِ يَقْرَأُ بَعْضُ النَّاسِ الصَّحِيفَةَ وَيَسْتَعِدُّ آخَرُونَ لِامْتِحَانٍ. وَفِي الْمَسَاءِ يُنْجِزُ الأَطْفَالُ وَاجِبَاتِهِمْ وَتُشَارِكُ الأُسَرُ فِي أَنْشِطَةٍ مَجَّانِيَّةٍ. كَمَا يُسَاعِدُ الْمُوَظَّفُونَ الزُّوَّارَ عَلَى الْبَحْثِ عَنِ الْمَعْلُومَاتِ وَاسْتِخْدَامِ الْحَوَاسِيبِ.\n\nوَلَكِنَّ الذَّهَابَ إِلَى الْمَكْتَبَةِ لَيْسَ سَهْلًا لِلْجَمِيعِ. فَبَعْضُ السُّكَّانِ يَعِيشُونَ بَعِيدًا، وَيَعْمَلُ آخَرُونَ فِي أَوْقَاتِ فَتْحِهَا. لِذَلِكَ تَدْرُسُ الْبَلَدِيَّةُ إِمْكَانِيَّةَ تَمْدِيدِ سَاعَاتِ الْعَمَلِ وَتَنْظِيمِ أَنْشِطَةٍ فِي أَحْيَاءَ مُخْتَلِفَةٍ. وَقَبْلَ تَغْيِيرِ الْخِدْمَةِ، تُرِيدُ مَعْرِفَةَ احْتِيَاجَاتِ السُّكَّانِ.',
+    B1: 'اقْتَرَحَ مَجْمُوعَةٌ مِنَ السُّكَّانِ تَحْسِينَ السَّاحَةِ الْقَرِيبَةِ مِنَ السُّوقِ. طَلَبَ بَعْضُهُمْ زِيَادَةَ الأَشْجَارِ وَالْمَقَاعِدِ، فِي حِينِ أَشَارَ آخَرُونَ إِلَى أَنَّ الأَرْصِفَةَ الضَّيِّقَةَ تُصَعِّبُ الْمَرُورَ عَلَى كِبَارِ السِّنِّ وَالأُسَرِ مَعَ عَرَبَاتِ الأَطْفَالِ. جَمَعَتِ الْبَلَدِيَّةُ الآرَاءَ وَأَعَدَّتْ تَصْمِيمًا يُبْقِي مَدَاخِلَ الْمَتَاجِرِ مَفْتُوحَةً وَيَزْرَعُ الأَشْجَارَ فِي أَمَاكِنَ لَا تَعُوقُ الْمَارَّةَ.\n\nسَتَكُونُ الْمَرْحَلَةُ الأُولَى تَجْرِبَةً مُؤَقَّتَةً لِثَلَاثَةِ أَشْهُرٍ. سَيُرَاقِبُ الْمُوَظَّفُونَ اسْتِخْدَامَ السَّاحَةِ وَيَسْأَلُونَ السُّكَّانَ وَأَصْحَابَ الْمَتَاجِرِ وَالزُّوَّارَ عَنْ تَجْرِبَتِهِمْ. بَعْدَ ذَلِكَ سَيُقَارِنُونَ النَّتَائِجَ بِالتَّوَقُّعَاتِ الأُولَى، وَيُعَدِّلُونَ التَّصْمِيمَ إِذَا ظَهَرَتْ مُشْكِلَاتٌ جَدِيدَةٌ.',
+    B2: 'تَهْدِفُ خُطَّةُ النَّقْلِ الْعَامِّ الْجَدِيدَةُ إِلَى تَقْلِيلِ الِازْدِحَامِ وَوَقْتِ التَّنَقُّلِ. وَقَدْ يُسَاعِدُ تَكْثِيفُ الرَّحَلَاتِ عَلَى تَقْلِيلِ الِانْتِظَارِ، لَكِنَّ ذَلِكَ يَتَوَقَّفُ عَلَى جَوْدَةِ الرَّبْطِ بِالْقِطَارَاتِ وَوُصُولِ الْخِدْمَةِ إِلَى الأَحْيَاءِ الأَقَلِّ خِدْمَةً. فَزِيَادَةُ عَدَدِ الْحَافِلَاتِ وَحْدَهَا لَا تَضْمَنُ وُصُولَ كُلِّ رَاكِبٍ إِلَى وِجْهَتِهِ.\n\nوَتَحْتَاجُ الْخُطَّةُ أَيْضًا إِلَى تَمْوِيلٍ مُسْتَقِرٍّ. فَشِرَاءُ الْمَرْكَبَاتِ وَتَوْظِيفُ السَّائِقِينَ وَصِيَانَةُ الْمَعَدَّاتِ تَتَطَلَّبُ نَفَقَاتٍ مُسْتَمِرَّةً، وَقَدْ تُؤَثِّرُ أَعْمَالُ الْبِنَاءِ فِي الْمَسَارَاتِ الْحَالِيَّةِ مُؤَقَّتًا. وَيَنْبَغِي لِلْبَلَدِيَّةِ أَنْ تُعْلِنَ مَعَايِيرَ التَّقْيِيمِ وَتُقَارِنَ النَّتَائِجَ بَيْنَ الأَحْيَاءِ وَتَسْتَمِعَ إِلَى الْمُسْتَخْدِمِينَ. وَقَدْ تُسَاعِدُ تَجْرِبَةٌ مَحْدُودَةٌ عَلَى اكْتِشَافِ آثَارٍ غَيْرِ مُتَوَقَّعَةٍ قَبْلَ تَعْمِيمِ التَّغْيِيرِ.',
+    C1: 'يَرْبِطُ تَقْرِيرُ الْبَلَدِيَّةِ بَيْنَ زِيَادَةِ عَدَدِ رَحَلَاتِ الْحَافِلَاتِ وَانْخِفَاضِ مُتَوَسِّطِ وَقْتِ الِانْتِظَارِ. غَيْرَ أَنَّ النَّتَائِجَ تَحْتَاجُ إِلَى قِرَاءَةٍ حَذِرَةٍ؛ فَالدِّرَاسَةُ لَمْ تَسْتَمِرَّ إِلَّا أَسَابِيعَ قَلِيلَةً، وَقَارَنَتْ بَيْنَ أَحْيَاءٍ مُخْتَلِفَةٍ، وَلَمْ تَعْزِلْ جَمِيعَ الْعَوَامِلِ الَّتِي تُؤَثِّرُ فِي مَوَاعِيدِ الْوُصُولِ. وَلَا يُثْبِتُ حُدُوثُ تَغَيُّرَيْنِ فِي الْوَقْتِ نَفْسِهِ أَنَّ أَحَدَهُمَا السَّبَبُ الْوَحِيدُ لِلآخَرِ.\n\nوَقَدْ يُخْفِي الْمُتَوَسِّطُ فُرُوقًا مُهِمَّةً فِي تَجْرِبَةِ الرُّكَّابِ. فَقَدْ تَتَحَسَّنُ الأَرْقَامُ فِي وَسَطِ الْمَدِينَةِ، بَيْنَمَا يَطُولُ انْتِظَارُ رُكَّابِ الْأَحْيَاءِ الْبَعِيدَةِ أَوْ رُكَّابِ اللَّيْلِ. وَيُوصِي مُعِدُّو التَّقْرِيرِ بِتَمْدِيدِ فَتْرَةِ الْمُرَاقَبَةِ وَتَحْلِيلِ الْبَيَانَاتِ حَسَبَ الْمَسَارِ وَالْوَقْتِ وَنَوْعِ الرَّبْطِ. وَيَنْبَغِي أَنْ تَجْمَعَ الدِّرَاسَةُ بَيْنَ الأَرْقَامِ وَالْمُقَابَلَاتِ، وَأَنْ تُوَضِّحَ حُدُودَ النَّتَائِجِ وَالظُّرُوفَ الَّتِي تَنْطَبِقُ عَلَيْهَا.',
+    C2: 'لَمْ تَرْفُضِ اللَّجْنَةُ الإِصْلَاحَ، بَلْ تَسَاءَلَتْ عَمَّا إِذَا كَانَتِ الْخُطَّةُ الْحَالِيَّةُ قَادِرَةً عَلَى تَحْقِيقِ أَهْدَافِهَا مِنْ دُونِ نَقْلِ التَّكَالِيفِ إِلَى فِئَاتٍ أُخْرَى. تُظْهِرُ الْمُؤَشِّرَاتُ الأُولَى زِيَادَةً فِي مُتَوَسِّطِ السُّرْعَةِ، لَكِنَّ هَذَا الرَّقْمَ لَا يَقِيسُ وَحْدَهُ مَوْثُوقِيَّةَ التَّحْوِيلَاتِ بَيْنَ الْخُطُوطِ، وَلَا يُبَيِّنُ الْفَرْقَ بَيْنَ وَسَطِ الْمَدِينَةِ وَأَطْرَافِهَا. وَقَدْ يَرْجِعُ جُزْءٌ مِنَ التَّحَسُّنِ إِلَى تَعْدِيلَاتٍ فِي الْجَدَاوِلِ كَانَتْ مُقَرَّرَةً مِنْ قَبْلُ.\n\nوَلِذَلِكَ تَحْتَمِلُ النَّتَائِجُ أَكْثَرَ مِنْ تَفْسِيرٍ. فَقَدْ تَكُونُ الِاسْتِثْمَارَاتُ قَدْ حَقَّقَتْ مَنْفَعَةً حَقِيقِيَّةً، أَوْ تَكُونُ ظُرُوفُ الْقِيَاسِ قَدْ أَفَادَتْ بَعْضَ الْمَسَارَاتِ عَلَى حِسَابِ غَيْرِهَا. وَتَطْلُبُ اللَّجْنَةُ بَيَانَاتٍ قَابِلَةً لِلْمُقَارَنَةِ عَلَى فَتْرَةٍ أَطْوَلَ، إِلَى جَانِبِ تَقْيِيمِ أَثَرِ الْخُطَّةِ فِي الْمُوَظَّفِينَ وَالرُّكَّابِ ذَوِي الْجَدَاوِلِ الأَقَلِّ مُرُونَةً. وَحَتَّى تَكْتَمِلَ الأَدِلَّةُ، يَبْقَى الِاسْتِنْتَاجُ الأَدَقُّ مَحْدُودًا: تَحَسَّنَتْ بَعْضُ الرِّحْلَاتِ، وَلَكِنْ لَمْ يَثْبُتْ بَعْدُ أَنَّ النِّظَامَ كُلَّهُ أَكْثَرُ عَدْلًا أَوِ اسْتِقْرَارًا.',
+  },
+  Russian: {
+    A1: 'В районе у людей есть простые повседневные дела. Утром открывается магазин, ученики идут в школу, а соседи здороваются. На площади растут деревья и стоят скамейки. Люди отдыхают там и немного разговаривают.\n\nВечером некоторые семьи гуляют вместе. Дети играют, а взрослые отдыхают. Место рядом с домом помогает соседям встречаться и лучше узнавать свой район.',
+    A2: 'Городская библиотека предлагает не только книги. Утром одни посетители читают газеты, а другие готовятся к экзаменам. После обеда дети делают уроки, а семьи приходят на бесплатные занятия. Сотрудники помогают найти информацию и пользоваться компьютерами.\n\nОднако не всем удобно добираться до библиотеки. Некоторые жители живут далеко, а другие работают в часы её работы. Поэтому город рассматривает возможность продлить часы и проводить занятия в разных районах. Прежде чем менять услугу, сотрудники хотят узнать, что нужно жителям.',
+    B1: 'Жители предложили благоустроить площадь возле рынка. На встречах одни просили посадить деревья и поставить скамейки, другие обращали внимание на узкие тротуары, по которым трудно проходить пожилым людям и родителям с колясками. Город собрал мнения и подготовил проект: входы в магазины останутся свободными, а деревья появятся там, где они не мешают движению.\n\nСначала изменения будут временными: пробный этап продлится три месяца. Сотрудники будут наблюдать за площадью и спрашивать жителей, владельцев магазинов и посетителей об их опыте. Затем они сравнят результаты с первоначальными ожиданиями. Если появятся новые трудности, проект можно будет изменить.',
+    B2: 'Новый план общественного транспорта призван уменьшить пробки и время поездок. Более частые рейсы могут сократить ожидание, однако их польза зависит от удобных пересадок на поезда и обслуживания районов, где сейчас мало маршрутов. Само по себе увеличение числа автобусов не гарантирует, что пассажиры смогут завершить поездку.\n\nПлану требуется устойчивое финансирование. Покупка транспорта, найм водителей и обслуживание оборудования связаны с постоянными расходами, а строительные работы могут временно изменить привычные маршруты. Городским властям следует заранее опубликовать критерии оценки, сравнить результаты в разных районах и выслушать пассажиров. Ограниченный пробный этап поможет обнаружить неожиданные последствия до масштабного внедрения.',
+    C1: 'В отчёте города увеличение числа автобусных рейсов связывается со снижением среднего времени ожидания. Однако выводы следует толковать осторожно: исследование продолжалось всего несколько недель, сравнивались районы с разными условиями, а все факторы, влияющие на пунктуальность, учтены не были. Одновременное изменение двух показателей само по себе не доказывает, что одно стало единственной причиной другого.\n\nСреднее значение также может скрывать различия в опыте пассажиров. Показатели в центре могут улучшиться, хотя на окраинных маршрутах или вечером ожидание останется долгим. Авторы предлагают продлить наблюдение и отдельно анализировать данные по маршрутам, времени суток и пересадкам. Более полная оценка должна сочетать статистику с интервью, обозначать ограничения исследования и уточнять, к каким условиям применимы выводы.',
+    C2: 'Комиссия не выступила против реформы, но усомнилась, позволит ли нынешний проект достичь заявленных целей, не переложив расходы на другие группы. Первые показатели свидетельствуют о росте средней скорости, однако сами по себе они не отражают надёжность пересадок и различия между центром и окраинами. Кроме того, часть улучшения может совпасть с изменениями расписания, запланированными заранее.\n\nСледовательно, результаты допускают несколько объяснений. Инвестиции могли принести реальную пользу, но измерение могло оказаться более благоприятным для одних маршрутов, чем для других. Комиссия просит собрать сопоставимые данные за более длительный период и оценить последствия для работников и пассажиров с менее гибким расписанием. Пока обоснован лишь ограниченный вывод: некоторые поездки стали лучше, но общая справедливость и устойчивость системы ещё не доказаны.',
+  },
+}
+
+export function getLanguageReadingExtension(language: AddedLanguage, level: GrammarLevel) {
+  return readingExtensions[language][level]
+}
+
+const dlptQuestions: Record<GrammarLevel, Array<{ prompt: string; answers: string[]; correctIndex: number }>> = {
+  A1: [
+    { prompt: 'Main idea · What is the passage mainly about?', answers: ['A learner’s daily language-study routine.', 'A family planning a long trip.', 'A school changing its schedule.', 'A shop preparing for a holiday.'], correctIndex: 0 },
+    { prompt: 'Detail · How does the learner respond when a friend asks a question?', answers: ['The learner answers slowly.', 'The learner changes the subject.', 'The learner writes a long report.', 'The learner leaves the community.'], correctIndex: 0 },
+    { prompt: 'Sequence · When will the learner review again?', answers: ['Tomorrow.', 'Last week.', 'Before going to school yesterday.', 'Only during the evening walk.'], correctIndex: 0 },
+    { prompt: 'Inference · What can be inferred about the learner?', answers: ['The learner practises regularly and is still building confidence.', 'The learner has stopped studying.', 'The learner already understands every conversation.', 'The learner studies only when travelling.'], correctIndex: 0 },
+  ],
+  A2: [
+    { prompt: 'Main idea · What is the passage mainly about?', answers: ['A trip to a nearby city and the activities during it.', 'A plan to build a new railway station.', 'A family moving to another country.', 'A guide to choosing a restaurant job.'], correctIndex: 0 },
+    { prompt: 'Detail · What did the travellers do after checking the map?', answers: ['They found a small café near the station.', 'They cancelled the trip.', 'They bought a train.', 'They returned home immediately.'], correctIndex: 0 },
+    { prompt: 'Inference · Why is the visit to the museum notable?', answers: ['They continued with their plans despite the rain.', 'The museum was closed for the week.', 'They had planned to work there.', 'The weather improved before they left.'], correctIndex: 0 },
+    { prompt: 'Purpose · Why does the writer mention buying a gift?', answers: ['To add a personal detail from the return journey.', 'To explain why the museum was closed.', 'To show that the travellers missed the train.', 'To introduce a discussion about prices.'], correctIndex: 0 },
+  ],
+  B1: [
+    { prompt: 'Main idea · What is the community trying to do?', answers: ['Improve a public space by gathering opinions and testing a proposal.', 'Close the local market permanently.', 'Replace all public meetings with a survey.', 'Move residents to another neighbourhood.'], correctIndex: 0 },
+    { prompt: 'Detail · What concern did some residents raise?', answers: ['Narrow sidewalks make it difficult to pass.', 'The square has too many libraries.', 'The market is open too early.', 'There are no homes near the square.'], correctIndex: 0 },
+    { prompt: 'Inference · Why is the first phase temporary?', answers: ['The community wants to observe results and make adjustments if needed.', 'The design has already been rejected.', 'The shops will soon leave the area.', 'The city plans to stop collecting feedback.'], correctIndex: 0 },
+    { prompt: 'Supporting evidence · Which action shows that the proposal can be revised?', answers: ['The city will compare actual use with initial expectations.', 'The city will avoid speaking with visitors.', 'The design will prevent access to shops.', 'The trial will end before it begins.'], correctIndex: 0 },
+  ],
+  B2: [
+    { prompt: 'Main idea · What is the central issue in the transport proposal?', answers: ['Potential benefits must be weighed against funding, access, and disruption.', 'New vehicles will eliminate every transport expense.', 'The proposal concerns only train ticket prices.', 'Construction has already solved traffic congestion.'], correctIndex: 0 },
+    { prompt: 'Detail · What is one possible benefit of more frequent service?', answers: ['Shorter waiting times.', 'Guaranteed lower fares.', 'No need for train connections.', 'An end to all road construction.'], correctIndex: 0 },
+    { prompt: 'Inference · Why does the passage recommend a pilot?', answers: ['It can reveal unintended effects before wider implementation.', 'It removes the need for public funding.', 'It ensures all neighbourhoods have identical needs.', 'It replaces the need to publish evaluation criteria.'], correctIndex: 0 },
+    { prompt: 'Author’s stance · How does the writer approach the proposal?', answers: ['Cautiously, noting benefits alongside conditions and risks.', 'Unreservedly, claiming success is certain.', 'Dismissively, rejecting public transport in general.', 'Indifferently, avoiding any evaluation.'], correctIndex: 0 },
+  ],
+  C1: [
+    { prompt: 'Main conclusion · What does the report establish?', answers: ['Waiting times fell, but the evidence does not prove the schedule change was the sole cause.', 'The schedule change improved every route equally.', 'Interviews proved that the study covered all seasons.', 'The report established that no other factors matter.'], correctIndex: 0 },
+    { prompt: 'Methodological limitation · What limits the study?', answers: ['It was brief, compared different neighbourhoods, and did not isolate every factor.', 'It relied exclusively on interviews over many years.', 'It measured no waiting times.', 'It excluded all bus routes from the city.'], correctIndex: 0 },
+    { prompt: 'Inference · Why might the average be misleading?', answers: ['It can hide longer waits for particular routes or passengers.', 'It necessarily records every passenger’s experience.', 'It proves the service is equally reliable everywhere.', 'It removes the need to examine separate routes.'], correctIndex: 0 },
+    { prompt: 'Recommended next step · What do the authors recommend?', answers: ['Extend observation and analyse results by route, time, and connection.', 'Stop collecting data and declare the plan successful.', 'Replace route data with a single citywide average.', 'Exclude interviews from any future assessment.'], correctIndex: 0 },
+  ],
+  C2: [
+    { prompt: 'Main argument · What is the committee’s position?', answers: ['It accepts the reform’s aim but questions whether this design meets it without shifting costs.', 'It opposes every form of reform.', 'It considers average speed a complete measure of success.', 'It concludes that all routes benefited equally.'], correctIndex: 0 },
+    { prompt: 'Qualification · Why is the speed increase insufficient evidence?', answers: ['It does not capture connection reliability, geographic differences, or other schedule changes.', 'It was measured on every route for several years.', 'It proves that costs were evenly distributed.', 'It shows that passengers no longer need transfers.'], correctIndex: 0 },
+    { prompt: 'Inference · What does the committee imply about the early results?', answers: ['They may reflect both genuine benefits and measurement conditions favouring some routes.', 'They are necessarily false because they are preliminary.', 'They demonstrate that no further data are needed.', 'They show that all passengers have flexible schedules.'], correctIndex: 0 },
+    { prompt: 'Best-supported conclusion · What can be concluded for now?', answers: ['Some journeys improved, but overall fairness and sustainability remain unproven.', 'The entire system has become fair and sustainable.', 'The reform produced no benefit on any journey.', 'The committee has already approved full implementation.'], correctIndex: 0 },
+  ],
+}
 const profiles: Record<AddedLanguage, LanguageProfile> = {
   'Mandarin Chinese': {
     name: 'Mandarin Chinese', code: 'zh-CN', script: 'Hans',
@@ -175,7 +244,7 @@ function buildPack(profile: LanguageProfile) {
         grammarLessonId: grammar.id,
         grammarNote: profile.grammar[level][0].explanation,
         label: `${profile.name.toLocaleUpperCase()} · ${level} · ${phrase.title.toLocaleUpperCase()}`,
-        passage: `${phrase.target} — ${phrase.english}\n\n${profile.reading[level]}`,
+        passage: `${profile.script === 'Arab' ? phrase.target.replace(/\s*\([^)]*\)/g, '').trim() : phrase.target}\n\n${profile.reading[level]}\n\n${readingExtensions[profile.name][level]}`,
         questions: [
           { prompt: `Which ${profile.name} expression means “${phrase.english}”?`, options: questionOptions, answer },
           { prompt: 'Which level-appropriate reading develops this lesson?', options: ['The passage on the front of this lesson.', 'An unrelated list with no context.', 'No reading is provided.'], answer: 0 },
@@ -188,6 +257,7 @@ function buildPack(profile: LanguageProfile) {
 
   const starters: StarterLesson[] = profile.starter.map((item, index) => {
     const [target, english] = item.split('|')
+    const readingPhrase = profile.script === 'Arab' ? target.replace(/\s*\([^)]*\)/g, '').trim() : target
     return {
       title: ['First greetings', 'Polite words', 'Say goodbye'][index],
       detail: `Start learning ${profile.name} with essential words and sound practice.`,
@@ -196,7 +266,7 @@ function buildPack(profile: LanguageProfile) {
       vocabulary: [{ spanish: target, english }],
       grammarFocus: 'First expressions',
       grammarExplanation: `Learn the complete expression ${target} as a useful phrase. Its meaning is “${english}.”`,
-      passage: `${target} — ${english}`,
+      passage: readingPhrase,
       questions: [{ prompt: `What does “${target}” mean?`, options: [english, 'please', 'good morning'], answer: 0 }],
       listeningPrompt: `Listen for ${target}, then repeat the expression.`,
     }
@@ -229,7 +299,7 @@ function buildPack(profile: LanguageProfile) {
       tag: `Video practice · ${level}`,
       url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${profile.name} ${level} comprehensible input listening`)}`,
       embedUrl: '',
-      passage: profile.reading[level],
+      passage: `${profile.reading[level]}\n\n${readingExtensions[profile.name][level]}`,
       comprehension: [{
         prompt: `Which expression means “${sample.english}”?`,
         answers: [sample.target, profile.phrases[level][1].target, profile.phrases[level][2].target],
@@ -237,6 +307,26 @@ function buildPack(profile: LanguageProfile) {
       }],
     }
   })
+
+  const dlptResources: Resource[] = levels.map((level) => ({
+    type: 'reading',
+    title: `${level} DLPT-style reading · ${profile.name}`,
+    description: `Read a longer ${profile.name} passage, then answer main-idea, detail, inference, and purpose questions.`,
+    source: 'DLPT-style practice',
+    level,
+    tag: `ILR reference ${level}`,
+    url: '',
+    embedUrl: '',
+    passage: `${profile.reading[level]}\n\n${readingExtensions[profile.name][level]}`,
+    comprehension: dlptQuestions[level].map((question, questionIndex) => {
+      const offset = (levels.indexOf(level) + questionIndex) % question.answers.length
+      return {
+        ...question,
+        answers: [...question.answers.slice(offset), ...question.answers.slice(0, offset)],
+        correctIndex: (question.correctIndex - offset + question.answers.length) % question.answers.length,
+      }
+    }),
+  }))
 
   const lessonContent = Object.fromEntries(supplementalLessons.map((lesson) => [lesson.title, {
     label: lesson.label,
@@ -272,7 +362,7 @@ function buildPack(profile: LanguageProfile) {
     lessonSupport,
     assessmentQuestions,
     activityCards,
-    resources,
+    resources: [...resources, ...dlptResources],
   }
 }
 

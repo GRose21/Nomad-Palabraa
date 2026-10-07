@@ -14,6 +14,7 @@ import {
 } from './italian.ts'
 import { italianCourseLevels } from './italian.ts'
 import { italianLevelVideoResources } from './resourceVideos.ts'
+import { buildDlptReadingResources } from './dlptPractice.ts'
 
 test('provides Italian grammar lessons across the full CEFR range', () => {
   assert.deepEqual([...new Set(italianGrammarLessons.map((lesson) => lesson.level))], italianGrammarLevels)
@@ -44,11 +45,21 @@ test('provides complete Italian learning path material from Pre-A1 through C2', 
     assert.equal(italianSupplementalLessons.filter((lesson) => lesson.level === level).length, 7)
     assert.equal(3 + italianSupplementalLessons.filter((lesson) => lesson.level === level).length, 10)
   }
+  for (const lesson of italianSupplementalLessons.filter((item) => item.id.startsWith('italian-expanded-'))) {
+    assert.equal(lesson.questions.length, 4)
+    assert.ok(lesson.passage.includes('\n\n'))
+  }
   for (const [title, support] of Object.entries(italianLessonSupport)) {
     assert.ok(italianLessonContent[title], `${title} needs a reading`)
     assert.ok(support.vocabulary.length >= 4)
     assert.ok(italianGrammarLessons.some((lesson) => lesson.id === support.grammarLessonId))
   }
+})
+
+test('provides DLPT-style Italian readings across A1–C2', () => {
+  const readings = buildDlptReadingResources('Italian', italianSupplementalLessons)
+  assert.equal(readings.length, 6)
+  assert.ok(readings.every((resource) => resource.comprehension?.length === 4 && resource.tag.startsWith('ILR')))
 })
 
 test('scales the expanded Italian readings up in length from A1 through C2', () => {

@@ -275,6 +275,11 @@ main { grid-column: 2; min-width: 0; }
 .reading-text, .comprehension { padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
 .reading-label { color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
 .reading-text p { margin: 19px 0 0; color: var(--ink); font: 430 16px/1.85 Georgia, serif; }
+.resource-passage p + p { margin-top: 1.1em; }
+.dlpt-passage p { margin: 0 0 18px; color: var(--ink); white-space: pre-line; font: 430 16px/1.9 Georgia, serif; }
+.course-passage p { margin: 24px 0 0; color: var(--ink); white-space: pre-line; font: 430 16px/1.9 Georgia, serif; }
+.course-passage p + p { margin-top: 1.1em; }
+.ilr-disclaimer { margin: -8px 0 20px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .comprehension h3 { margin: 0 0 16px; font-size: 17px; }
 .comprehension > div { margin-bottom: 16px; }
 .comprehension strong { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; }

@@ -41,7 +41,27 @@ test('new language lessons include target-script text, pronunciation support, an
   for (const pack of Object.values(additionalLanguagePacks)) {
     for (const lesson of pack.supplementalLessons) {
       assert.ok(lesson.passage.length > lesson.vocabulary[0].spanish.length)
+      assert.ok(lesson.passage.includes('\n\n'))
       assert.ok(lesson.questions.every((question) => question.answer >= 0 && question.answer < question.options.length))
     }
+  }
+})
+
+test('Arabic readings contain Arabic script only and DLPT resources cover all levels', () => {
+  const arabic = additionalLanguagePacks['Modern Standard Arabic']
+  const allReadings = [
+    ...arabic.starters.map((lesson) => lesson.passage),
+    ...arabic.supplementalLessons.map((lesson) => lesson.passage),
+    ...arabic.resources.map((resource) => resource.passage ?? ''),
+  ]
+  const arabicLetters = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\s،؛؟.!؟…«»():\-0-9]+/
+  for (const passage of allReadings) {
+    assert.ok(passage.length > 0)
+    assert.equal(passage.replace(arabicLetters, '').trim(), '', `Arabic reading contains non-Arabic text: ${passage.slice(0, 50)}`)
+  }
+  for (const pack of Object.values(additionalLanguagePacks)) {
+    const dlpt = pack.resources.filter((resource) => resource.source === 'DLPT-style practice')
+    assert.equal(dlpt.length, 6)
+    assert.ok(dlpt.every((resource) => resource.comprehension?.length === 4))
   }
 })
