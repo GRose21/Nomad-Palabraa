@@ -11,6 +11,9 @@ import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, t
 import { buildDlptReadingResources } from './dlptPractice'
 import { formatCourseLevel, ilrDisclaimer } from './ilr'
 import CourseLevelBadge from './CourseLevelBadge'
+import AudioControl from './AudioControl'
+import AudioDock from './AudioDock'
+import { chooseSpeechVoice, speechRate } from './speech'
 import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
@@ -549,6 +552,13 @@ function App() {
   const [speechTranscript, setSpeechTranscript] = useState('')
   const [speechError, setSpeechError] = useState('')
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null)
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const activeSpeechTextRef = useRef('')
+  const activeSpeechLanguageRef = useRef('')
+  const speechPlaybackStatusRef = useRef<'idle' | 'playing' | 'paused'>('idle')
+  const [speechPlaybackStatus, setSpeechPlaybackStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [activeSpeechText, setActiveSpeechText] = useState('')
+  const [activeSpeechLanguage, setActiveSpeechLanguage] = useState('')
   const [minutes, setMinutes] = useState(initialDailyState.minutes)
   const [lastActivityDate, setLastActivityDate] = useState(initialDailyState.lastActivityDate)
   const [dailyActivityGoal, setDailyActivityGoal] = useState(initialActivityGoal)
@@ -1076,16 +1086,91 @@ function App() {
     recordDailyActivity(`resource-${selectedResource.title}`)
   }
 
+  const stopAudioPlayback = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+    speechUtteranceRef.current = null
+    activeSpeechTextRef.current = ''
+    activeSpeechLanguageRef.current = ''
+    speechPlaybackStatusRef.current = 'idle'
+    setSpeechPlaybackStatus('idle')
+    setActiveSpeechText('')
+    setActiveSpeechLanguage('')
+  }
+
+  useEffect(() => () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+  }, [])
+
+  useEffect(() => {
+    if (activeSpeechLanguageRef.current && activeSpeechLanguageRef.current !== targetLanguageCode) {
+      stopAudioPlayback()
+    }
+  }, [targetLanguageCode])
+
   const playActivityPhrase = (phrase: string) => {
     if (!('speechSynthesis' in window)) {
       showToast('Audio playback is not supported in this browser.')
       return
     }
-    window.speechSynthesis.cancel()
+    const synthesis = window.speechSynthesis
+    const currentStatus = speechPlaybackStatusRef.current
+    if (activeSpeechTextRef.current === phrase && activeSpeechLanguageRef.current === targetLanguageCode) {
+      if (currentStatus === 'playing' && synthesis.speaking) {
+        synthesis.pause()
+        speechPlaybackStatusRef.current = 'paused'
+        setSpeechPlaybackStatus('paused')
+        return
+      }
+      if (currentStatus === 'paused') {
+        synthesis.resume()
+        speechPlaybackStatusRef.current = 'playing'
+        setSpeechPlaybackStatus('playing')
+        return
+      }
+    }
+
+    synthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(phrase)
     utterance.lang = targetLanguageCode
-    utterance.rate = 0.85
-    window.speechSynthesis.speak(utterance)
+    utterance.rate = speechRate(targetLanguageCode)
+    const voice = chooseSpeechVoice(synthesis.getVoices(), targetLanguageCode)
+    if (voice) utterance.voice = voice
+    activeSpeechTextRef.current = phrase
+    activeSpeechLanguageRef.current = targetLanguageCode
+    speechUtteranceRef.current = utterance
+    setActiveSpeechText(phrase)
+    setActiveSpeechLanguage(targetLanguageCode)
+    speechPlaybackStatusRef.current = 'playing'
+    setSpeechPlaybackStatus('playing')
+    utterance.onend = () => {
+      if (speechUtteranceRef.current !== utterance) return
+      speechUtteranceRef.current = null
+      activeSpeechTextRef.current = ''
+      activeSpeechLanguageRef.current = ''
+      speechPlaybackStatusRef.current = 'idle'
+      setSpeechPlaybackStatus('idle')
+      setActiveSpeechText('')
+      setActiveSpeechLanguage('')
+    }
+    utterance.onerror = (event) => {
+      if (speechUtteranceRef.current !== utterance) return
+      speechUtteranceRef.current = null
+      activeSpeechTextRef.current = ''
+      activeSpeechLanguageRef.current = ''
+      speechPlaybackStatusRef.current = 'idle'
+      setSpeechPlaybackStatus('idle')
+      setActiveSpeechText('')
+      setActiveSpeechLanguage('')
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        showToast(`Audio playback failed: ${event.error}.`)
+      }
+    }
+    try {
+      synthesis.speak(utterance)
+    } catch (error) {
+      stopAudioPlayback()
+      showToast(error instanceof Error ? `Audio playback failed: ${error.message}` : 'Audio playback failed.')
+    }
   }
 
   const startSpeakingPractice = () => {
@@ -1450,7 +1535,7 @@ function App() {
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
                     <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
-                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong><span>{word.english}</span><button className="audio-button" onClick={() => playActivityPhrase(word.spanish)} aria-label={`Listen to ${word.spanish}`}>▶ Listen</button></div>)}</div>
+                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong><span>{word.english}</span><AudioControl phrase={word.spanish} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === word.spanish && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} /></div>)}</div>
                   </article>
                   <article className="learn-grammar">
                     <span className="eyebrow">GRAMMAR · ONE STEP AT A TIME</span>
@@ -1469,7 +1554,7 @@ function App() {
                     ) : null}
                   </article>
                   <article className="plan-material">
-                    <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span><button className="audio-button" onClick={() => selectedLessonContent && playActivityPhrase(selectedLessonContent.text)}><span aria-hidden="true">▶</span> Listen to passage</button></div>
+                    <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span>{selectedLessonContent && <AudioControl phrase={selectedLessonContent.text} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedLessonContent.text && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen to passage" />}</div>
                     <p className="learn-listening-prompt"><strong>Listening focus:</strong> {selectedSupport?.listeningPrompt}</p>
                     {selectedLessonContent && <PassageText className="course-passage" text={selectedLessonContent.text} lang={targetLanguageCode} direction={targetTextDirection} />}
                   </article>
@@ -1563,7 +1648,7 @@ function App() {
                 <div className="reading-panel">
                   <div className="reading-text">
                     <span className="reading-label">{selectedResource.type === 'video' ? 'ORIGINAL COMPANION TRANSCRIPT · NOT VERBATIM VIDEO CAPTIONS' : `${selectedResource.source} · ${selectedResource.tag}`}</span>
-                    <button className="audio-button" onClick={() => selectedResource.passage && playActivityPhrase(selectedResource.passage)}><span aria-hidden="true">▶</span> Listen to {selectedResource.type === 'video' ? 'companion text' : 'passage'}</button>
+                    {selectedResource.passage && <AudioControl phrase={selectedResource.passage} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedResource.passage && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label={selectedResource.type === 'video' ? 'Listen to companion text' : 'Listen to passage'} />}
                     {selectedResource.passage && <PassageText className="resource-passage" text={selectedResource.passage} lang={targetLanguageCode} direction={targetTextDirection} />}
                   </div>
                   <div className="comprehension">
@@ -1608,7 +1693,7 @@ function App() {
               <article className="activity-card">
                 <div className="activity-top"><span className="activity-icon">{activeActivityCards[activityIndex].icon}</span><div><small>{activeActivityCards[activityIndex].level} · ACTIVITY {activityPosition + 1} OF {visibleActivityIndices.length}</small><h3>{activeActivityCards[activityIndex].title}</h3></div></div>
                 <p>{activeActivityCards[activityIndex].prompt}</p>
-                <button className="audio-button" onClick={() => playActivityPhrase(activeActivityCards[activityIndex].audioPhrase)} aria-label={`Play ${learningLanguage} audio: ${activeActivityCards[activityIndex].audioPhrase}`}><span aria-hidden="true">▶</span> Play audio</button>
+                <AudioControl phrase={activeActivityCards[activityIndex].audioPhrase} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === activeActivityCards[activityIndex].audioPhrase && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Play audio" />
                 <div className="activity-options">{activeActivityCards[activityIndex].options.map((option, index) => <button key={option} lang={targetLanguageCode} dir={targetTextDirection} className={activityAnswer === index ? 'selected' : ''} onClick={() => { setActivityAnswer(index); setActivityFeedback('') }}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
                 <div className="activity-actions"><button className="secondary-button" disabled={activityPosition <= 0} onClick={() => changeActivity(-1)}>← Previous</button><div><button className="secondary-button" onClick={() => changeActivity(1)} disabled={activityPosition >= visibleActivityIndices.length - 1}>Next card</button><button className="primary-button" disabled={activityAnswer === null} onClick={completeActivity}>Complete activity ✓</button></div></div>
                 {activityFeedback && <p className={`activity-feedback ${activityFeedback.startsWith('Correct') ? '' : 'error'}`} role="status">{activityFeedback}</p>}
@@ -1712,6 +1797,15 @@ function App() {
           <p className="account-privacy">Each account can access only its own progress. Do not share your Supabase service-role key; the app only needs the public publishable/anon key.</p>
         </section>
       </div>}
+      {speechPlaybackStatus !== 'idle' && <AudioDock
+        text={activeSpeechText}
+        language={learningLanguage}
+        lang={targetLanguageCode}
+        direction={targetTextDirection}
+        paused={speechPlaybackStatus === 'paused'}
+        onToggle={() => playActivityPhrase(activeSpeechText)}
+        onStop={stopAudioPlayback}
+      />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )

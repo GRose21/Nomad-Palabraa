@@ -10,6 +10,7 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 - Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
 - CEFR-filtered video and reading resources with audio and comprehension checks; new-language video entries open level-matched YouTube results
 - Level-filtered practice activities with browser audio across Pre-A1–C2
+- Speech playback controls with pause, resume, and stop; playback prefers an installed enhanced voice when available, while voice quality still depends on the browser and operating system
 - A dedicated DLPT-style reading practice area with longer passages and main-idea, detail, inference, purpose, and evidence questions across A1–C2
 - Approximate ILR reading references alongside CEFR levels; the crosswalk is explicitly a study guide, not a DLPT score estimate
 - An 18-question placement assessment for each language, spanning beginner through advanced

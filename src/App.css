@@ -300,6 +300,15 @@ main { grid-column: 2; min-width: 0; }
 .audio-button { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--green); background: var(--mint); font-size: 11px; font-weight: 750; }
 .audio-button:hover { border-color: var(--green); }
 .audio-button span { font-size: 9px; }
+.audio-button[aria-pressed='true'] { color: #fff; border-color: var(--green); background: var(--green); }
+.audio-dock { position: fixed; right: 22px; bottom: 22px; z-index: 45; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; width: min(480px, calc(100vw - 32px)); padding: 11px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: 0 12px 40px rgba(0,0,0,.18); }
+.audio-dock-copy { min-width: 0; }
+.audio-dock-copy strong { display: block; margin-bottom: 3px; color: var(--green); font-size: 10px; }
+.audio-dock-copy p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.audio-dock-button, .audio-dock-stop { min-height: 36px; border: 1px solid var(--line); border-radius: 9px; color: var(--green); background: var(--mint); font-size: 10px; font-weight: 750; }
+.audio-dock-button { padding: 0 11px; }
+.audio-dock-stop { width: 36px; padding: 0; }
+.audio-dock-button:hover, .audio-dock-stop:hover { border-color: var(--green); }
 .activity-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .activity-options button { padding: 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #fbfcfa; text-align: left; font-size: 11px; }
 .activity-options button span { margin-right: 9px; color: var(--coral); font-weight: 850; }
@@ -439,4 +448,5 @@ main { grid-column: 2; min-width: 0; }
   .language-select > span { display: none; }
   .language-select select { width: clamp(118px, 36vw, 150px); min-width: 0; padding: 8px 22px 8px 8px; }
   .topbar .icon-button { flex: 0 0 42px; }
+  .audio-dock { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
 }
