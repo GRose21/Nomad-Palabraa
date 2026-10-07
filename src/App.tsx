@@ -7,6 +7,7 @@ import { activityCards } from './practice'
 import { getVocabulary } from './vocabulary'
 import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, italianGrammarLessons, italianGrammarLevels, italianLessonContent, italianLessonSupport, italianPlans, italianStarters, italianSupplementalLessons } from './italian'
 import { italianLevelVideoResources, spanishLevelVideoResources } from './resourceVideos'
+import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, type LearningLanguage } from './extraLanguages'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
@@ -393,25 +394,37 @@ const todayKey = () => {
 }
 
 function App() {
-  const [learningLanguage, setLearningLanguage] = useState<'Spanish' | 'Italian'>(() => {
+  const [learningLanguage, setLearningLanguage] = useState<LearningLanguage>(() => {
     try {
-      return localStorage.getItem('learning-language') === 'Italian' ? 'Italian' : 'Spanish'
+      const savedLanguage = localStorage.getItem('learning-language')
+      return savedLanguage && isLearningLanguage(savedLanguage)
+        ? savedLanguage
+        : 'Spanish'
     } catch {
       return 'Spanish'
     }
   })
   const isItalian = learningLanguage === 'Italian'
-  const activeGrammarLessons = isItalian ? italianGrammarLessons : grammarLessons
-  const activeGrammarLevels = isItalian ? italianGrammarLevels : grammarLevels
-  const activeCourseLevels = isItalian ? italianCourseLevels : courseLevels
-  const activeStarterLessons = isItalian ? italianStarters : starterLessons
-  const activeSupplementalLessons = isItalian ? italianSupplementalLessons : supplementalLessons
-  const activeLessonSupport = isItalian ? italianLessonSupport : lessonSupport
-  const activeAssessmentQuestions = isItalian ? italianAssessmentQuestions : assessmentQuestions
-  const activeActivityCards = isItalian ? italianActivityCards : activityCards
+  const extraPack = learningLanguage === 'Spanish' || learningLanguage === 'Italian' ? null : additionalLanguagePacks[learningLanguage]
+  const { lang: targetLanguageCode, dir: targetTextDirection } = getLanguageTextMetadata(learningLanguage)
+  const activeGrammarLessons = extraPack?.grammarLessons ?? (isItalian ? italianGrammarLessons : grammarLessons)
+  const activeGrammarLevels = extraPack?.grammarLevels ?? (isItalian ? italianGrammarLevels : grammarLevels)
+  const activeCourseLevels = extraPack?.courseLevels ?? (isItalian ? italianCourseLevels : courseLevels)
+  const activeStarterLessons = extraPack?.starters ?? (isItalian ? italianStarters : starterLessons)
+  const activeSupplementalLessons = extraPack?.supplementalLessons ?? (isItalian ? italianSupplementalLessons : supplementalLessons)
+  const activeLessonSupport = extraPack?.lessonSupport ?? (isItalian ? italianLessonSupport : lessonSupport)
+  const activeAssessmentQuestions = extraPack?.assessmentQuestions ?? (isItalian ? italianAssessmentQuestions : assessmentQuestions)
+  const activeActivityCards = extraPack?.activityCards ?? (isItalian ? italianActivityCards : activityCards)
   const activePlans = isItalian ? italianPlans : plans
-  const activeLessonContent = isItalian ? italianLessonContent : allLessonContent
-  const activeCoursePlans: CoursePlan[] = useMemo(() => isItalian ? [
+  const activeLessonContent = extraPack?.lessonContent ?? (isItalian ? italianLessonContent : allLessonContent)
+  const activeCoursePlans: CoursePlan[] = useMemo(() => extraPack ? [
+      ...extraPack.starters.map((lesson, index) => ({
+        id: `pre-a1-${index + 1}`, courseLevel: 'Pre-A1' as const, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
+      })),
+      ...extraPack.supplementalLessons.map((lesson) => ({
+        id: lesson.id, courseLevel: lesson.level, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
+      })),
+    ] : isItalian ? [
       ...italianStarters.map((lesson, index) => ({
         id: `pre-a1-${index + 1}`, courseLevel: 'Pre-A1' as const, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
       })),
@@ -424,7 +437,7 @@ function App() {
             id: lesson.id, courseLevel, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
           })),
         ]),
-    ] : coursePlans, [isItalian, activePlans])
+    ] : coursePlans, [isItalian, activePlans, extraPack])
   const currentGrammarLessonIds = useMemo(() => new Set(activeGrammarLessons.map((lesson) => lesson.id)), [activeGrammarLessons])
   const activeSupplementalLessonSupport = useMemo(() => Object.fromEntries(activeSupplementalLessons.map((lesson) => [
     lesson.title,
@@ -868,7 +881,25 @@ function App() {
 
   const currentLevel = level ? levelData[level] : null
   const learningStreak = getStreak(activeDates, currentDate)
-  const activeResources: Resource[] = useMemo(() => isItalian
+  const activeResources: Resource[] = useMemo(() => extraPack
+    ? [
+      ...extraPack.resources,
+      ...Object.entries(extraPack.lessonContent).map(([title, content]) => ({
+        type: 'reading' as const,
+        title,
+        description: `${learningLanguage} reading and comprehension practice: ${title}.`,
+        source: `Nomad Palabra ${learningLanguage} course`,
+        level: activeCoursePlans.find((plan) => plan.title === title)?.courseLevel ?? 'A1',
+        tag: 'Graded reading',
+        url: '',
+        embedUrl: '',
+        passage: content.text,
+        comprehension: content.questions.map((question) => ({
+          prompt: question.prompt, answers: question.options, correctIndex: question.answer,
+        })),
+      })),
+    ]
+    : isItalian
     ? [
       {
         type: 'video' as const,
@@ -901,7 +932,7 @@ function App() {
         })),
       })),
     ]
-    : resources, [isItalian, activeCoursePlans])
+    : resources, [isItalian, extraPack, activeCoursePlans, learningLanguage])
   const resourceTypeFilters = ['all', 'video', 'reading'] as const
   const visibleResources = useMemo(
     () => activeResources.filter((resource) => {
@@ -1033,7 +1064,7 @@ function App() {
     }
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(phrase)
-    utterance.lang = isItalian ? 'it-IT' : 'es-ES'
+    utterance.lang = targetLanguageCode
     utterance.rate = 0.85
     window.speechSynthesis.speak(utterance)
   }
@@ -1052,7 +1083,7 @@ function App() {
     setSpeechPracticeStatus('listening')
 
     const recognition = new Recognition()
-    recognition.lang = isItalian ? 'it-IT' : 'es-ES'
+    recognition.lang = targetLanguageCode
     recognition.continuous = false
     recognition.interimResults = false
     recognition.onresult = (event) => {
@@ -1225,7 +1256,7 @@ function App() {
     }
   }
 
-  const changeLearningLanguage = (language: 'Spanish' | 'Italian') => {
+  const changeLearningLanguage = (language: LearningLanguage) => {
     if (language === learningLanguage) return
     setLoadedProgressOwner(null)
     try {
@@ -1306,9 +1337,14 @@ function App() {
           <button className="menu-button" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}>☰</button>
           <div><span className="eyebrow">{learningLanguage.toLocaleUpperCase()} · CEFR</span><h1>{currentPageTitle}</h1></div>
           <div className="top-actions">
-            <label className="language-select"><span>Learning</span><select value={learningLanguage} onChange={(event) => changeLearningLanguage(event.target.value === 'Italian' ? 'Italian' : 'Spanish')} aria-label="Choose learning language">
+            <label className="language-select"><span>Learning</span><select value={learningLanguage} onChange={(event) => {
+              if (isLearningLanguage(event.target.value)) changeLearningLanguage(event.target.value)
+            }} aria-label="Choose learning language">
               <option value="Spanish">Spanish</option>
               <option value="Italian">Italian</option>
+              <option value="Mandarin Chinese">Chinese (Mandarin)</option>
+              <option value="Modern Standard Arabic">Arabic (MSA)</option>
+              <option value="Russian">Russian</option>
             </select></label>
             {user && supabase && <button className={`sync-indicator ${cloudStatus === 'error' ? 'error' : ''}`} onClick={() => { setAccountError(''); setAccountMessage(''); setAccountOpen(true) }} aria-label={cloudStatus === 'error' ? 'Cloud sync problem. Open account details' : `Cloud sync ${cloudStatus}. Open account details`}>
               {cloudStatus === 'saving' ? 'Saving…' : cloudStatus === 'loading' ? 'Loading…' : cloudStatus === 'error' ? 'Sync issue' : 'Saved'}
@@ -1326,7 +1362,7 @@ function App() {
                 <p>Build your {learningLanguage} through short assessments, meaningful media, and reading practice tuned to your CEFR level.</p>
                 <div className="hero-actions"><button className="white-button" onClick={startAssessment}>Take a quick test →</button><button className="text-button" onClick={() => navigate('resources')}>Explore resources</button></div>
               </div>
-              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>{isItalian ? 'it' : 'es'}</span><small>{learningLanguage.toLocaleUpperCase()}</small></div><b className="floating-badge one">{level ?? '?'}</b><b className="floating-badge two">✓</b></div>
+              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>{extraPack?.code.slice(0, 2) ?? (isItalian ? 'it' : 'es')}</span><small>{learningLanguage.toLocaleUpperCase()}</small></div><b className="floating-badge one">{level ?? '?'}</b><b className="floating-badge two">✓</b></div>
             </section>
 
             <section className="dashboard-grid">
@@ -1369,7 +1405,7 @@ function App() {
               {questionIndex < activeAssessmentQuestions.length ? (
                 <div className="question-view">
                   <h3>{currentQuestion.prompt}</h3>
-                  <div className="answer-list">{currentQuestion.answers.map((answer, index) => <button key={answer} className={selectedAnswer === index ? 'answer selected' : 'answer'} onClick={() => chooseAnswer(index)}><span>{String.fromCharCode(65 + index)}</span>{answer}</button>)}</div>
+                  <div className="answer-list">{currentQuestion.answers.map((answer, index) => <button key={answer} lang={targetLanguageCode} dir={targetTextDirection} className={selectedAnswer === index ? 'answer selected' : 'answer'} onClick={() => chooseAnswer(index)}><span>{String.fromCharCode(65 + index)}</span>{answer}</button>)}</div>
                   <div className="quiz-actions"><button className="secondary-button" disabled={questionIndex === 0} onClick={() => { const previousIndex = Math.max(0, questionIndex - 1); setQuestionIndex(previousIndex); setSelectedAnswer(answers[previousIndex] ?? null) }}>← Previous</button><button className="primary-button" disabled={selectedAnswer === null} onClick={questionIndex === activeAssessmentQuestions.length - 1 ? finishAssessment : nextQuestion}>Next question →</button></div>
                 </div>
               ) : (
@@ -1394,7 +1430,7 @@ function App() {
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
                     <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
-                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={isItalian ? 'it' : 'es'}>{word.spanish}</strong><span>{word.english}</span><button className="audio-button" onClick={() => playActivityPhrase(word.spanish)} aria-label={`Listen to ${word.spanish}`}>▶ Listen</button></div>)}</div>
+                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong><span>{word.english}</span><button className="audio-button" onClick={() => playActivityPhrase(word.spanish)} aria-label={`Listen to ${word.spanish}`}>▶ Listen</button></div>)}</div>
                   </article>
                   <article className="learn-grammar">
                     <span className="eyebrow">GRAMMAR · ONE STEP AT A TIME</span>
@@ -1402,7 +1438,7 @@ function App() {
                       <>
                         <h3>{selectedGrammarLesson.title}</h3>
                         <p className="learn-grammar-summary">{selectedGrammarLesson.summary}</p>
-                        {selectedGrammarLesson.sections.map((section) => <section key={section.heading}><h4>{section.heading}</h4><p>{section.explanation}</p><ul>{section.examples.map((example) => <li key={example}>{example}</li>)}</ul></section>)}
+                        {selectedGrammarLesson.sections.map((section) => <section key={section.heading}><h4>{section.heading}</h4><p>{section.explanation}</p><ul>{section.examples.map((example) => <li key={example} lang={targetLanguageCode} dir={targetTextDirection}>{example}</li>)}</ul></section>)}
                         {selectedSupport?.grammarNote && <p className="learn-grammar-note"><strong>In this passage:</strong> {selectedSupport.grammarNote}</p>}
                       </>
                     ) : selectedStarter ? (
@@ -1415,7 +1451,7 @@ function App() {
                   <article className="plan-material">
                     <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span><button className="audio-button" onClick={() => selectedLessonContent && playActivityPhrase(selectedLessonContent.text)}><span aria-hidden="true">▶</span> Listen to passage</button></div>
                     <p className="learn-listening-prompt"><strong>Listening focus:</strong> {selectedSupport?.listeningPrompt}</p>
-                    <p>{selectedLessonContent?.text}</p>
+                    <p lang={targetLanguageCode} dir={targetTextDirection}>{selectedLessonContent?.text}</p>
                   </article>
                   <article className="plan-comprehension">
                     <span className="eyebrow">READING · CHECK YOUR UNDERSTANDING</span>
@@ -1426,7 +1462,7 @@ function App() {
                         <div>{question.options.map((option, answerIndex) => {
                           const isCorrect = planAnswersChecked && answerIndex === question.answer
                           const isIncorrect = planAnswersChecked && planAnswers[questionIndex] === answerIndex && !isCorrect
-                          return <button key={option} className={`${planAnswers[questionIndex] === answerIndex ? 'selected' : ''}${isCorrect ? ' correct' : ''}${isIncorrect ? ' incorrect' : ''}`} disabled={planAnswersChecked} onClick={() => choosePlanAnswer(questionIndex, answerIndex)}>{option}</button>
+                          return <button key={option} lang={targetLanguageCode} dir={targetTextDirection} className={`${planAnswers[questionIndex] === answerIndex ? 'selected' : ''}${isCorrect ? ' correct' : ''}${isIncorrect ? ' incorrect' : ''}`} disabled={planAnswersChecked} onClick={() => choosePlanAnswer(questionIndex, answerIndex)}>{option}</button>
                         })}</div>
                       </div>
                     ))}
@@ -1450,7 +1486,7 @@ function App() {
                         : <button className="primary-button" onClick={startSpeakingPractice}><span aria-hidden="true">🎙</span> Start speaking</button>}
                       <span role="status" aria-live="polite">{speechPracticeStatus === 'listening' ? `Listening… speak your response in ${learningLanguage}.` : speechPracticeStatus === 'ready' ? 'Recording finished. You can try again.' : 'Your browser will ask for microphone access.'}</span>
                     </div>
-                    {speechTranscript && <div className="speech-transcript"><strong>What we heard</strong><p lang={isItalian ? 'it' : 'es'}>{speechTranscript}</p><small>This transcript helps you review what was recognized; it does not score pronunciation.</small></div>}
+                    {speechTranscript && <div className="speech-transcript"><strong>What we heard</strong><p lang={targetLanguageCode} dir={targetTextDirection}>{speechTranscript}</p><small>This transcript helps you review what was recognized; it does not score pronunciation.</small></div>}
                     {speechError && <p className="speech-error" role="alert">{speechError}</p>}
                   </article>
                 </div>
@@ -1464,7 +1500,7 @@ function App() {
                   const completedInLevel = levelLessons.filter((plan) => completedLearnLessons.includes(plan.id)).length
                   return <section className="learn-level" key={courseLevel}>
                     <div className="learn-level-heading">
-                      <div><span className="level-badge">{courseLevel}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
+                      <div><span className="level-badge">{courseLevel}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
                       <small>{completedInLevel} / {levelLessons.length} complete</small>
                     </div>
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
@@ -1499,15 +1535,15 @@ function App() {
                   <>
                     {selectedResource.embedUrl
                       ? <div className="video-frame"><iframe src={selectedResource.embedUrl} title={selectedResource.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
-                      : <p>This video resource opens on its publisher’s site.</p>}
-                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">{selectedResource.embedUrl ? 'Open original video ↗' : `Browse ${selectedResource.source} videos ↗`}</a>
+                      : <p>{selectedResource.source === 'YouTube video search' ? 'Browse level-matched videos on YouTube.' : 'This video resource opens on its publisher’s site.'}</p>}
+                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">{selectedResource.embedUrl ? 'Open original video ↗' : selectedResource.source === 'YouTube video search' ? 'Browse YouTube video results ↗' : `Browse ${selectedResource.source} videos ↗`}</a>
                   </>
                 )}
                 <div className="reading-panel">
                   <div className="reading-text">
                     <span className="reading-label">{selectedResource.type === 'video' ? 'ORIGINAL COMPANION TRANSCRIPT · NOT VERBATIM VIDEO CAPTIONS' : `${selectedResource.source} · ${selectedResource.tag}`}</span>
                     <button className="audio-button" onClick={() => selectedResource.passage && playActivityPhrase(selectedResource.passage)}><span aria-hidden="true">▶</span> Listen to {selectedResource.type === 'video' ? 'companion text' : 'passage'}</button>
-                    {selectedResource.passage && <p>{selectedResource.passage}</p>}
+                    {selectedResource.passage && <p lang={targetLanguageCode} dir={targetTextDirection}>{selectedResource.passage}</p>}
                   </div>
                   <div className="comprehension">
                     <h3>Check your understanding</h3>
@@ -1517,7 +1553,7 @@ function App() {
                         <div>{question.answers.map((answer, answerIndex) => {
                           const isCorrect = passageChecked && answerIndex === question.correctIndex
                           const isIncorrect = passageChecked && passageAnswers[questionIndex] === answerIndex && !isCorrect
-                          return <button key={answer} className={`${passageAnswers[questionIndex] === answerIndex ? 'selected' : ''}${isCorrect ? ' correct' : ''}${isIncorrect ? ' incorrect' : ''}`} disabled={passageChecked} onClick={() => choosePassageAnswer(questionIndex, answerIndex)}>{answer}</button>
+                          return <button key={answer} lang={targetLanguageCode} dir={targetTextDirection} className={`${passageAnswers[questionIndex] === answerIndex ? 'selected' : ''}${isCorrect ? ' correct' : ''}${isIncorrect ? ' incorrect' : ''}`} disabled={passageChecked} onClick={() => choosePassageAnswer(questionIndex, answerIndex)}>{answer}</button>
                         })}</div>
                       </div>
                     ))}
@@ -1528,8 +1564,8 @@ function App() {
               </div>
             ) : (
               <>
-                <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>{isItalian ? 'Read & listen' : 'Watch, listen & read'}</h2><p>Graded passages, comprehension practice, and learning resources for every stage of your {learningLanguage} journey.</p><span className="question-count">{visibleResources.length} of {activeResources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{resourceTypeFilters.map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
-                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
+                <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>{isItalian || extraPack ? 'Read & listen' : 'Watch, listen & read'}</h2><p>Graded passages, comprehension practice, and learning resources for every stage of your {learningLanguage} journey.</p><span className="question-count">{visibleResources.length} of {activeResources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{resourceTypeFilters.map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
+                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos' : 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos →' : 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
               </>
             )}
           </div>
@@ -1552,13 +1588,13 @@ function App() {
                 <div className="activity-top"><span className="activity-icon">{activeActivityCards[activityIndex].icon}</span><div><small>{activeActivityCards[activityIndex].level} · ACTIVITY {activityPosition + 1} OF {visibleActivityIndices.length}</small><h3>{activeActivityCards[activityIndex].title}</h3></div></div>
                 <p>{activeActivityCards[activityIndex].prompt}</p>
                 <button className="audio-button" onClick={() => playActivityPhrase(activeActivityCards[activityIndex].audioPhrase)} aria-label={`Play ${learningLanguage} audio: ${activeActivityCards[activityIndex].audioPhrase}`}><span aria-hidden="true">▶</span> Play audio</button>
-                <div className="activity-options">{activeActivityCards[activityIndex].options.map((option, index) => <button key={option} className={activityAnswer === index ? 'selected' : ''} onClick={() => { setActivityAnswer(index); setActivityFeedback('') }}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
+                <div className="activity-options">{activeActivityCards[activityIndex].options.map((option, index) => <button key={option} lang={targetLanguageCode} dir={targetTextDirection} className={activityAnswer === index ? 'selected' : ''} onClick={() => { setActivityAnswer(index); setActivityFeedback('') }}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
                 <div className="activity-actions"><button className="secondary-button" disabled={activityPosition <= 0} onClick={() => changeActivity(-1)}>← Previous</button><div><button className="secondary-button" onClick={() => changeActivity(1)} disabled={activityPosition >= visibleActivityIndices.length - 1}>Next card</button><button className="primary-button" disabled={activityAnswer === null} onClick={completeActivity}>Complete activity ✓</button></div></div>
                 {activityFeedback && <p className={`activity-feedback ${activityFeedback.startsWith('Correct') ? '' : 'error'}`} role="status">{activityFeedback}</p>}
               </article>
               <aside className="activity-side"><span className="eyebrow">YOUR MOMENTUM</span><div className="activity-score"><strong>{completedActivities.length}</strong><span>activities completed</span></div><div className="activity-progress">{activeActivityCards.map((card, index) => <span key={card.title} className={completedActivities.includes(index) ? 'done' : ''} />)}</div><h4>Quick tip</h4><p>Say the answer aloud before selecting it. Speaking the target phrase helps it stick.</p></aside>
             </div>
-            {!isItalian && <section className="practice-video">
+            {learningLanguage === 'Spanish' && <section className="practice-video">
               <div><span className="eyebrow">SPANISH VIDEO</span><h2>A Very Special Dinner</h2><p>Watch a beginner-friendly Spanish story. Listen for familiar words and use the context to follow along.</p></div>
               <div className="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/wEO_8ghFM04" title="Learn Spanish with This Story: A Very Special Dinner (Beginner), Dreaming Spanish" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
               <a className="video-source" href="https://www.youtube.com/watch?v=wEO_8ghFM04" target="_blank" rel="noreferrer">Open video on YouTube ↗</a>

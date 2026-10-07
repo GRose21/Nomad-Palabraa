@@ -10,6 +10,12 @@ type GrammarTabProps = {
 }
 
 function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, levels = defaultLevels, language = 'Spanish' }: GrammarTabProps) {
+  const targetLanguageCode = language === 'Mandarin Chinese' ? 'zh-CN'
+    : language === 'Modern Standard Arabic' ? 'ar'
+      : language === 'Russian' ? 'ru-RU'
+        : language === 'Italian' ? 'it-IT'
+          : 'es-ES'
+  const targetDirection = language === 'Modern Standard Arabic' ? 'rtl' : 'auto'
   const orderedLessons = [...lessons].sort((first, second) => levels.indexOf(first.level) - levels.indexOf(second.level))
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
@@ -112,7 +118,7 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
             <section key={section.heading}>
               <h3>{section.heading}</h3>
               <p>{section.explanation}</p>
-              <ul>{section.examples.map((example) => <li key={example}>{example}</li>)}</ul>
+              <ul>{section.examples.map((example) => <li key={example} lang={targetLanguageCode} dir={targetDirection}>{example}</li>)}</ul>
             </section>
           ))}
         </article>
@@ -130,6 +136,8 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
                     key={option}
                     className={`${answers[questionIndex] === answerIndex ? 'selected' : ''}${correct ? ' correct' : ''}${incorrect ? ' incorrect' : ''}`}
                     disabled={checked}
+                    lang={targetLanguageCode}
+                    dir={targetDirection}
                     onClick={() => chooseAnswer(questionIndex, answerIndex)}
                   >
                     {option}
@@ -157,12 +165,12 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
 }
 
 const levelDescription: Record<GrammarLevel, string> = {
-  A1: 'Sentence foundations, nouns, articles, and essential present-tense verbs.',
-  A2: 'Agreement, questions, stem-changing verbs, reflexives, and the first past tense.',
-  B1: 'Past narration, future and conditional forms, and object pronouns.',
-  B2: 'Subjunctive, commands, and choosing por or para.',
-  C1: 'Compound tenses, hypothetical clauses, and relative-clause mood.',
-  C2: 'Reported speech, sequence of tenses, and precise discourse structure.',
+  A1: 'Sentence structure, noun patterns, and essential present-tense forms.',
+  A2: 'Questions, negation, common past forms, and everyday sentence patterns.',
+  B1: 'Narration, linked clauses, and expressing cause, condition, and result.',
+  B2: 'Complex sentence structures, argument, and formal communication.',
+  C1: 'Formal writing, evidence, attribution, and precise argument structure.',
+  C2: 'Nuance, register, implication, and fine distinctions in meaning.',
 }
 
 export default GrammarTab

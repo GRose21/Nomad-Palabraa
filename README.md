@@ -1,16 +1,17 @@
 # Nomad Palabra — CEFR Language Coach
 
-Nomad Palabra is a responsive React application for estimating a learner's CEFR level, creating a personalized study plan, and finding useful language-learning resources. Choose Spanish or Italian from the selector at the top of the app; the English interface stays the same while lessons, grammar, vocabulary, assessment, audio, and practice switch to the selected language. Progress is saved separately for each language.
+Nomad Palabra is a responsive React application for estimating a learner's CEFR level, creating a personalized study plan, and finding useful language-learning resources. Choose Spanish, Italian, Mandarin Chinese, Modern Standard Arabic (MSA), or Russian from the selector at the top of the app; the English interface stays the same while lessons, grammar, vocabulary, assessment, audio, and practice switch to the selected language. Progress is saved separately for each language.
 
 ## Features
 
 - An 18-question CEFR-style assessment
-- Progressive Spanish and Italian learning paths from Pre-A1 (no prior knowledge) through C2, with vocabulary, grammar, graded passages, comprehension, listening, speaking, and saved lesson progress
-- Grammar courses for both languages from A1 foundations through C2 structures, with teaching examples and scored exercises
+- Progressive learning paths for all five languages from Pre-A1 (no prior knowledge) through C2, with ten lessons per CEFR level, vocabulary, grammar, graded passages, comprehension, listening, speaking, and saved lesson progress
+- Grammar courses for all five languages from A1 foundations through C2 structures, with teaching examples and scored exercises
 - Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
-- A 21-item resource library with embedded videos and graded in-app readings, audio, and comprehension checks
-- 22 level-filtered practice activities with Spanish or Italian audio across Pre-A1–C2
+- CEFR-filtered video and reading resources with audio and comprehension checks; new-language video entries open level-matched YouTube results
+- Level-filtered practice activities with browser audio across Pre-A1–C2
 - An 18-question placement assessment for each language, spanning beginner through advanced
+- Simplified Chinese entries include pinyin; Arabic is Modern Standard Arabic with Arabic-script text and right-to-left display; Russian entries use Cyrillic
 - A feedback form for bug reports and improvement ideas, stored in Supabase when configured
 - Progress tracking with course and grammar completion, recorded study time, activity milestones, an editable daily goal, and a calendar-based learning streak
 - Optional email accounts with per-user cloud-synced progress through Supabase; without account configuration, progress remains saved in the current browser

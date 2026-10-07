@@ -13,6 +13,12 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
   const [levelFilter, setLevelFilter] = useState<'all' | CourseLevel>('all')
   const [revealedEntries, setRevealedEntries] = useState<string[]>([])
   const vocabulary = useMemo(() => entries ?? getVocabulary(), [entries])
+  const targetLanguageCode = language === 'Mandarin Chinese' ? 'zh-CN'
+    : language === 'Modern Standard Arabic' ? 'ar'
+      : language === 'Russian' ? 'ru-RU'
+        : language === 'Italian' ? 'it-IT'
+          : 'es-ES'
+  const targetDirection = language === 'Modern Standard Arabic' ? 'rtl' : 'auto'
   const visibleEntries = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase()
     return vocabulary.filter((entry) => {
@@ -45,7 +51,7 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
           const isRevealed = revealedEntries.includes(key)
           return <button className={`vocabulary-card${isRevealed ? ' revealed' : ''}`} key={key} onClick={() => toggleEntry(entry)} aria-expanded={isRevealed}>
             <span className="vocabulary-meta"><span>{entry.level}</span><span>{isRevealed ? 'MEANING' : 'TAP TO REVEAL'}</span></span>
-            <strong lang={language === 'Italian' ? 'it' : 'es'}>{entry.spanish}</strong>
+            <strong lang={targetLanguageCode} dir={targetDirection}>{entry.spanish}</strong>
             {isRevealed && <span className="vocabulary-translation">{entry.english}</span>}
             <span className="vocabulary-source">{entry.lessonTitle}</span>
           </button>
