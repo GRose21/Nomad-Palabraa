@@ -4,6 +4,10 @@ import type { Resource } from './resourceCatalog'
 import { ilrDisclaimer } from './ilr'
 import PassageText from './PassageText'
 import CourseLevelBadge from './CourseLevelBadge'
+import { dlptListeningTopics } from './dlptListening'
+
+type Topic = typeof dlptListeningTopics[number]
+const levels: CourseLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 type DlptTabProps = {
   language: string
@@ -14,10 +18,13 @@ type DlptTabProps = {
 
 function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
   const [selected, setSelected] = useState<Resource | null>(null)
+  const [levelFilter, setLevelFilter] = useState<CourseLevel | 'all'>('A1')
+  const [topicFilter, setTopicFilter] = useState<Topic | 'all'>('all')
   const [answers, setAnswers] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const questions = selected?.comprehension ?? []
   const score = questions.filter((question, index) => answers[index] === question.correctIndex).length
+  const topics = [...new Set(resources.map((resource) => resource.topic).filter((topic): topic is Topic => Boolean(topic)))]
 
   const openPractice = (resource: Resource) => {
     setSelected(resource)
@@ -69,18 +76,28 @@ function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
     )
   }
 
-  const levels: CourseLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+  const visibleResources = resources.filter((resource) =>
+    (levelFilter === 'all' || resource.level === levelFilter)
+    && (topicFilter === 'all' || resource.topic === topicFilter),
+  )
   return (
     <div className="content">
       <div className="section-heading">
         <div><span className="eyebrow">READING COMPREHENSION</span><h2>DLPT-style reading practice</h2><p>Practise identifying main ideas, details, purpose, inference, and qualified claims in longer {language} readings.</p></div>
-        <span className="question-count">{resources.length} reading sets</span>
+        <span className="question-count">{resources.length} reading passages</span>
       </div>
       <p className="ilr-disclaimer">{ilrDisclaimer}</p>
+      <div className="dlpt-filters" aria-label="Filter DLPT reading passages">
+        <div className="filters" aria-label="Filter by CEFR level">
+          {(['all', ...levels] as const).map((level) => <button key={level} type="button" className={levelFilter === level ? 'active' : ''} onClick={() => setLevelFilter(level)}>{level === 'all' ? 'All levels' : level}</button>)}
+        </div>
+        <div className="filters" aria-label="Filter by topic">
+          {(['all', ...topics] as const).map((topic) => <button key={topic} type="button" className={topicFilter === topic ? 'active' : ''} onClick={() => setTopicFilter(topic)}>{topic === 'all' ? 'All topics' : topic}</button>)}
+        </div>
+      </div>
       <div className="resource-grid">
-        {levels.map((level) => {
-          const resource = resources.find((item) => item.level === level)
-          if (!resource) return null
+        {visibleResources.map((resource) => {
+          const level = resource.level as CourseLevel
           return <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`Start ${resource.title}`} onClick={() => openPractice(resource)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
@@ -88,7 +105,7 @@ function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
             }
           }}>
             <div className="resource-art reading"><span>文</span></div>
-            <div><div className="resource-meta"><span>READING</span><CourseLevelBadge level={level} /></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.comprehension?.length ?? 0} multiple-choice questions</small><span className="resource-open">Start practice →</span></div></div>
+            <div><div className="resource-meta"><span>{resource.topic ?? 'READING'}</span><CourseLevelBadge level={level} /></div><h3>{resource.title.replace(`${level} reading · `, '')}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.comprehension?.length ?? 0} multiple-choice questions</small><span className="resource-open">Start practice →</span></div></div>
           </article>
         })}
       </div>

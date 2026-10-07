@@ -243,12 +243,16 @@ main { grid-column: 2; min-width: 0; }
 .resource-filters { display: grid; justify-items: end; gap: 7px; max-width: 100%; }
 .resource-filters .filters { max-width: 100%; flex-wrap: wrap; }
 .resource-filters .filters button { white-space: nowrap; }
+.dlpt-filters { display: grid; justify-items: start; gap: 9px; margin: -5px 0 18px; }
+.dlpt-filters .filters { max-width: 100%; flex-wrap: wrap; }
+.dlpt-filters .filters button { white-space: nowrap; }
 .resource-card { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: var(--card); transition: .25s; cursor: pointer; }
 .resource-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .resource-card:focus-visible { outline: 3px solid rgba(239,127,98,.55); outline-offset: 3px; }
 .resource-art { height: 140px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--green), #387c72); font-size: 42px; position: relative; overflow: hidden; }
 .resource-art.video { background: linear-gradient(135deg, #c56d51, #ed9a79); }
 .resource-art.reading { background: linear-gradient(135deg, #756c99, #a69bc8); }
+.resource-art.listening { background: linear-gradient(135deg, #258578, #69b7a4); }
 .resource-art span { position: relative; z-index: 2; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); backdrop-filter: blur(5px); }
 .resource-card > div:last-child { min-width: 0; padding: 19px; }
 .resource-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }

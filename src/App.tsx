@@ -9,6 +9,7 @@ import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, 
 import { italianLevelVideoResources, spanishLevelVideoResources } from './resourceVideos'
 import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, type LearningLanguage } from './extraLanguages'
 import { buildDlptReadingResources } from './dlptPractice'
+import { buildDlptListeningResources } from './dlptListening'
 import { formatCourseLevel, ilrDisclaimer } from './ilr'
 import CourseLevelBadge from './CourseLevelBadge'
 import AudioControl from './AudioControl'
@@ -22,11 +23,12 @@ import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import DlptTab from './DlptTab'
+import DlptListeningTab from './DlptListeningTab'
 import { supabase } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'dlpt' | 'progress' | 'feedback'
+type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'dlpt' | 'dlpt-listening' | 'progress' | 'feedback'
 type FeedbackCategory = 'bug' | 'recommendation' | 'other'
 
 const levelData: Record<Level, { label: string; title: string; description: string; progress: number }> = {
@@ -303,6 +305,7 @@ const navItems: Array<{ id: Page; label: string; icon: string }> = [
   { id: 'resources', label: 'Resources', icon: '▤' },
   { id: 'play', label: 'Play & practice', icon: '▶' },
   { id: 'dlpt', label: 'DLPT reading', icon: '▤' },
+  { id: 'dlpt-listening', label: 'DLPT listening', icon: '♫' },
   { id: 'progress', label: 'Progress', icon: '↗' },
   { id: 'feedback', label: 'Feedback', icon: '✉' },
 ]
@@ -316,6 +319,7 @@ const pageTitles: Record<Page, string> = {
   resources: 'Study library',
   play: 'Play & practice',
   dlpt: 'DLPT-style reading practice',
+  'dlpt-listening': 'DLPT-style listening practice',
   progress: 'Your progress',
   feedback: 'Feedback',
 }
@@ -901,6 +905,20 @@ function App() {
 
   const currentLevel = level ? levelData[level] : null
   const learningStreak = getStreak(activeDates, currentDate)
+  const topicalDlptListeningResources = useMemo(
+    () => buildDlptListeningResources(learningLanguage),
+    [learningLanguage],
+  )
+  const topicalDlptReadingResources = useMemo(
+    () => topicalDlptListeningResources.map((resource) => ({
+      ...resource,
+      title: resource.title.replace(' listening · ', ' reading · '),
+      description: `Read a ${resource.level} ${resource.topic?.toLocaleLowerCase()} report and answer a comprehension question.`,
+      source: 'DLPT-style practice',
+      tag: 'DLPT-style reading',
+    })),
+    [topicalDlptListeningResources],
+  )
   const activeResources: Resource[] = useMemo(() => extraPack
     ? [
       ...extraPack.resources,
@@ -918,6 +936,8 @@ function App() {
           prompt: question.prompt, answers: question.options, correctIndex: question.answer,
         })),
       })),
+      ...topicalDlptReadingResources,
+      ...topicalDlptListeningResources,
     ]
     : isItalian
     ? [
@@ -952,14 +972,19 @@ function App() {
           prompt: question.prompt, answers: question.options, correctIndex: question.answer,
         })),
       })),
+      ...topicalDlptReadingResources,
+      ...topicalDlptListeningResources,
     ]
     : [
       ...resources,
       ...buildDlptReadingResources(learningLanguage, supplementalLessons),
-    ], [isItalian, extraPack, activeCoursePlans, activeLessonContent, learningLanguage])
+      ...topicalDlptReadingResources,
+      ...topicalDlptListeningResources,
+    ], [isItalian, extraPack, activeCoursePlans, activeLessonContent, learningLanguage, topicalDlptReadingResources, topicalDlptListeningResources])
   const resourceTypeFilters = ['all', 'video', 'reading'] as const
   const visibleResources = useMemo(
     () => activeResources.filter((resource) => {
+      if (resource.source === 'DLPT listening practice') return false
       const matchesType = resourceFilter === 'all' || resource.type === resourceFilter
       const matchesLevel = resourceLevelFilter === 'all'
         || resource.level === resourceLevelFilter
@@ -969,6 +994,7 @@ function App() {
     [resourceFilter, resourceLevelFilter, activeResources],
   )
   const dlptResources = activeResources.filter((resource) => resource.source === 'DLPT-style practice')
+  const dlptListeningResources = activeResources.filter((resource) => resource.source === 'DLPT listening practice')
   const nextAssessmentMilestone = getNextCourseAssessmentMilestone(completedLearnLessons.length, completedCourseAssessments)
   const latestCompletedPlan = [...completedLearnLessons].reverse()
     .map((id) => activeCoursePlans.find((plan) => plan.id === id))
@@ -1781,6 +1807,18 @@ function App() {
         )}
 
         {page === 'dlpt' && <DlptTab language={learningLanguage} resources={dlptResources} lang={targetLanguageCode} direction={targetTextDirection} />}
+        {page === 'dlpt-listening' && <DlptListeningTab
+          language={learningLanguage}
+          resources={dlptListeningResources}
+          lang={targetLanguageCode}
+          direction={targetTextDirection}
+          activeAudioText={activeSpeechText}
+          audioStatus={speechPlaybackStatus}
+          listenedPassages={listenedPassages}
+          visibleTranscripts={visibleTranscripts}
+          onListen={playActivityPhrase}
+          onToggleTranscript={toggleTranscript}
+        />}
 
         {page === 'feedback' && (
           <div className="content">

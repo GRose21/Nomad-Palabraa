@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test src/learning.test.ts src/grammar.test.ts src/vocabulary.test.ts src/learnCourse.test.ts src/assessment.test.ts src/practice.test.ts src/italian.test.ts src/extraLanguages.test.ts src/speech.test.ts src/courseAssessmentSchedule.test.ts",
+    "test": "node --test src/learning.test.ts src/grammar.test.ts src/vocabulary.test.ts src/learnCourse.test.ts src/assessment.test.ts src/practice.test.ts src/italian.test.ts src/extraLanguages.test.ts src/speech.test.ts src/courseAssessmentSchedule.test.ts src/dlptListening.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

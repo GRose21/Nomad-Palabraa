@@ -5,6 +5,7 @@ export type Resource = {
   source: string
   level: string
   tag: string
+  topic?: string
   url: string
   embedUrl: string
   passage?: string
