@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { grammarLessons as defaultLessons, grammarLevels as defaultLevels, type GrammarLesson, type GrammarLevel } from './grammar'
+import CollegeCourseCard from './CollegeCourseCard'
 
 type GrammarTabProps = {
   completedLessons: string[]
@@ -65,9 +66,10 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
     return (
       <div className="content grammar-page">
         <div className="section-heading">
-          <div><span className="eyebrow">{language.toLocaleUpperCase()} GRAMMAR COURSE</span><h2>Build your grammar, step by step</h2><p>Start with sentence basics and work through verb forms, tenses, pronouns, and advanced structures.</p></div>
+          <div><span className="eyebrow">{language.toLocaleUpperCase()} COLLEGE-STYLE GRAMMAR SEQUENCE</span><h2>Build your grammar, step by step</h2><p>Progress from introductory forms to advanced academic syntax, register, and rhetorical control. Lessons pair explicit explanations with guided application.</p></div>
           <span className="question-count">{completedSet.size} of {lessons.length} lessons complete</span>
         </div>
+        <p className="college-path-disclaimer">The year and semester labels describe a typical progression, not college credit or a formal placement determination.</p>
         <div className="grammar-overall-progress" aria-label={`${completedSet.size} of ${lessons.length} grammar lessons complete`}>
           <span style={{ width: `${completedSet.size / lessons.length * 100}%` }} />
         </div>
@@ -80,6 +82,7 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
                 <div><span className="level-badge">{level}</span><div><h3>{level} grammar</h3><p>{levelDescription[level]}</p></div></div>
                 <small>{completedInLevel} / {lessonsAtLevel.length} complete</small>
               </div>
+              <CollegeCourseCard level={level} mode="grammar" />
               <div className="grammar-lesson-grid">
                 {lessonsAtLevel.map((lesson, index) => {
                   const isComplete = completedSet.has(lesson.id)

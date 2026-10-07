@@ -3,6 +3,7 @@ import type { GrammarLesson, GrammarLevel } from './grammar'
 import type { SupplementalLesson, StarterLesson } from './learnCourse'
 import type { PracticeActivity } from './practice'
 import type { Resource } from './resourceCatalog'
+import { buildCollegeGrammarLessons } from './collegeCurriculum.ts'
 
 export type AddedLanguage = 'Mandarin Chinese' | 'Modern Standard Arabic' | 'Russian'
 
@@ -213,19 +214,22 @@ const profiles: Record<AddedLanguage, LanguageProfile> = {
 }
 
 function buildPack(profile: LanguageProfile) {
-  const grammarLessons: GrammarLesson[] = levels.flatMap((level) => profile.grammar[level].map((topic, index) => ({
-    id: `${profile.code}-grammar-${level.toLowerCase()}-${index + 1}`,
-    level,
-    title: topic.title,
-    summary: topic.summary,
-    sections: [{ heading: topic.title, explanation: topic.explanation, examples: topic.examples }],
-    exercises: [{
-      prompt: `Choose the example that demonstrates ${topic.title.toLocaleLowerCase()}.`,
-      options: [...topic.examples, profile.phrases[level][index].target],
-      answer: 0,
-      explanation: topic.explanation,
-    }],
-  })))
+  const grammarLessons: GrammarLesson[] = [
+    ...levels.flatMap((level) => profile.grammar[level].map((topic, index) => ({
+      id: `${profile.code}-grammar-${level.toLowerCase()}-${index + 1}`,
+      level,
+      title: topic.title,
+      summary: topic.summary,
+      sections: [{ heading: topic.title, explanation: topic.explanation, examples: topic.examples }],
+      exercises: [{
+        prompt: `Choose the example that demonstrates ${topic.title.toLocaleLowerCase()}.`,
+        options: [...topic.examples, profile.phrases[level][index].target],
+        answer: 0,
+        explanation: topic.explanation,
+      }],
+    }))),
+    ...buildCollegeGrammarLessons(profile.name),
+  ]
 
   const supplementalLessons: SupplementalLesson[] = levels.flatMap((level) =>
     profile.phrases[level].map((phrase, index) => {

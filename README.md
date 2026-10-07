@@ -6,7 +6,8 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 
 - An 18-question CEFR-style assessment
 - Progressive learning paths for all five languages from Pre-A1 (no prior knowledge) through C2, with ten lessons per CEFR level, vocabulary, grammar, level-scaled multi-paragraph readings, comprehension, listening, unrecorded speaking prompts, and saved lesson progress; Arabic lesson passages use Arabic text only
-- Grammar courses for all five languages from A1 foundations through C2 structures, with teaching examples and scored exercises
+- College-style course framing from first-year elementary study through a fourth-year advanced capstone, with level-specific communication outcomes, signature projects, and independent study guidance; these are study guides, not college-credit equivalencies
+- Grammar sequences that progress from foundational forms to advanced academic syntax, source attribution, register, and rhetoric, with expanded multi-section lessons and scored practice for Mandarin, Arabic, and Russian
 - Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
 - CEFR-filtered video and reading resources with audio and comprehension checks; new-language video entries open level-matched YouTube results
 - Level-filtered practice activities with browser audio across Pre-A1–C2

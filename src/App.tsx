@@ -12,6 +12,7 @@ import { buildDlptReadingResources } from './dlptPractice'
 import { buildDlptListeningResources } from './dlptListening'
 import { formatCourseLevel, ilrDisclaimer } from './ilr'
 import CourseLevelBadge from './CourseLevelBadge'
+import CollegeCourseCard from './CollegeCourseCard'
 import AudioControl from './AudioControl'
 import AudioDock from './AudioDock'
 import ListeningTranscript from './ListeningTranscript'
@@ -1680,6 +1681,7 @@ function App() {
             ) : (
               <>
                 <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review. CEFR levels include an approximate ILR reading reference.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
+                <p className="college-path-disclaimer">Organized as a college-style sequence from introductory study through an advanced capstone. Course-year labels are learning guides, not credit-bearing college equivalencies.</p>
                 <p className="ilr-disclaimer">{ilrDisclaimer}</p>
                 <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${activeCoursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / activeCoursePlans.length * 100}%` }} /></div>
                 <section className="checkpoint-card">
@@ -1700,6 +1702,7 @@ function App() {
                       <div><CourseLevelBadge level={courseLevel} /><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
                       <small>{completedInLevel} / {levelLessons.length} complete</small>
                     </div>
+                    <CollegeCourseCard level={courseLevel} mode="learn" />
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
                       const isComplete = completedLearnLessons.includes(item.id)
                       const isNext = nextLearnLesson?.id === item.id

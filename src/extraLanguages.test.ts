@@ -21,6 +21,12 @@ test('each added language includes ten lessons and level-matched videos across A
       const lessons = pack.supplementalLessons.filter((lesson) => lesson.level === level)
       assert.equal(lessons.length, 10, `${language} ${level} should have ten lessons`)
       assert.ok(pack.grammarLessons.some((lesson) => lesson.level === level), `${language} ${level} should have grammar`)
+      assert.ok(pack.grammarLessons.filter((lesson) => lesson.level === level).length >= 3, `${language} ${level} should include college-level grammar instruction`)
+      const collegeGrammarLessons = pack.grammarLessons.filter((lesson) => lesson.level === level && lesson.id.includes('-college-grammar-'))
+      assert.equal(collegeGrammarLessons.length, 1, `${language} ${level} should include a dedicated college-level unit`)
+      assert.ok(collegeGrammarLessons.every((lesson) =>
+        lesson.sections.length >= 2 && lesson.exercises.length >= 3,
+      ), `${language} ${level} grammar lessons should include teaching and application`)
       assert.ok(pack.resources.some((resource) => resource.level === level && resource.type === 'video'), `${language} ${level} should have a video resource`)
       assert.ok(lessons.every((lesson) => lesson.minutes === `${{ A1: 12, A2: 16, B1: 20, B2: 24, C1: 28, C2: 32 }[level]} min`))
     }
