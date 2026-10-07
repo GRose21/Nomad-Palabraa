@@ -12,7 +12,8 @@ import { supabase } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'progress'
+type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'progress' | 'feedback'
+type FeedbackCategory = 'bug' | 'recommendation' | 'other'
 type Resource = {
   type: 'video' | 'reading'
   title: string
@@ -321,6 +322,7 @@ const navItems: Array<{ id: Page; label: string; icon: string }> = [
   { id: 'resources', label: 'Resources', icon: '▤' },
   { id: 'play', label: 'Play & practice', icon: '▶' },
   { id: 'progress', label: 'Progress', icon: '↗' },
+  { id: 'feedback', label: 'Feedback', icon: '✉' },
 ]
 
 const pageTitles: Record<Page, string> = {
@@ -332,6 +334,7 @@ const pageTitles: Record<Page, string> = {
   resources: 'Study library',
   play: 'Play & practice',
   progress: 'Your progress',
+  feedback: 'Feedback',
 }
 
 const isStoredState = (value: unknown): value is Record<string, unknown> =>
@@ -540,6 +543,11 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(storedState.darkMode === true)
   const [toast, setToast] = useState('')
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('bug')
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [feedbackBusy, setFeedbackBusy] = useState(false)
+  const [feedbackError, setFeedbackError] = useState('')
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
 
   const [weekDays] = useState(() => getWeekDays(new Date()))
 
@@ -1184,6 +1192,43 @@ function App() {
     recordDailyActivity(`grammar-${lessonId}`)
   }
 
+  const submitFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setFeedbackError('')
+    setFeedbackSubmitted(false)
+    const message = feedbackMessage.trim()
+    if (message.length < 10 || message.length > 5000) {
+      setFeedbackError('Feedback must be between 10 and 5,000 characters.')
+      return
+    }
+    if (!supabase) {
+      setFeedbackError('Feedback submission is not configured yet. Please try again later.')
+      return
+    }
+
+    setFeedbackBusy(true)
+    try {
+      const { error } = await supabase.from('user_feedback').insert({
+        category: feedbackCategory,
+        message,
+        language: learningLanguage,
+        page,
+        user_id: userId,
+      })
+      if (error) {
+        setFeedbackError(`Could not submit your feedback: ${error.message}`)
+        return
+      }
+
+      setFeedbackMessage('')
+      setFeedbackSubmitted(true)
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? `Could not submit your feedback: ${error.message}` : 'Could not submit your feedback. Please try again.')
+    } finally {
+      setFeedbackBusy(false)
+    }
+  }
+
   const changeLearningLanguage = (language: 'Spanish' | 'Italian') => {
     if (language === learningLanguage) return
     setLoadedProgressOwner(null)
@@ -1502,6 +1547,41 @@ function App() {
               <div className="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/wEO_8ghFM04" title="Learn Spanish with This Story: A Very Special Dinner (Beginner), Dreaming Spanish" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
               <a className="video-source" href="https://www.youtube.com/watch?v=wEO_8ghFM04" target="_blank" rel="noreferrer">Open video on YouTube ↗</a>
             </section>}
+          </div>
+        )}
+
+        {page === 'feedback' && (
+          <div className="content">
+            <div className="section-heading">
+              <div><span className="eyebrow">HELP US IMPROVE</span><h2>Send feedback</h2><p>Report a bug, tell us what is not working, or share an idea that could make Nomad Palabra better.</p></div>
+            </div>
+            <section className="feedback-card">
+              {supabase ? (
+                <form className="feedback-form" onSubmit={submitFeedback}>
+                  <label>What would you like to share?
+                    <select value={feedbackCategory} onChange={(event) => setFeedbackCategory(event.target.value === 'recommendation' ? 'recommendation' : event.target.value === 'other' ? 'other' : 'bug')}>
+                      <option value="bug">Report a bug</option>
+                      <option value="recommendation">Suggest an improvement</option>
+                      <option value="other">Other feedback</option>
+                    </select>
+                  </label>
+                  <label>Your feedback
+                    <textarea value={feedbackMessage} onChange={(event) => { setFeedbackMessage(event.target.value); setFeedbackError(''); setFeedbackSubmitted(false) }} minLength={10} maxLength={5000} required rows={8} placeholder="What happened? What did you expect? What would you recommend?" />
+                    <small>{feedbackMessage.length} / 5,000 characters · Please do not include passwords or other sensitive information.</small>
+                  </label>
+                  <div className="feedback-context">This submission includes the current page and learning language ({learningLanguage}). It does not include your email or account details.</div>
+                  {feedbackError && <p className="account-error" role="alert">{feedbackError}</p>}
+                  {feedbackSubmitted && <p className="account-message" role="status">Thank you—your feedback has been submitted.</p>}
+                  <button className="primary-button" disabled={feedbackBusy || feedbackMessage.trim().length < 10}>{feedbackBusy ? 'Submitting…' : 'Submit feedback'}</button>
+                </form>
+              ) : (
+                <div className="feedback-unavailable">
+                  <h3>Feedback submissions are not configured yet</h3>
+                  <p>To receive feedback, configure Supabase for this app and run the feedback setup SQL from <code>supabase/feedback.sql</code> in the Supabase SQL Editor.</p>
+                  <p>Until then, no feedback will be sent or saved.</p>
+                </div>
+              )}
+            </section>
           </div>
         )}
 

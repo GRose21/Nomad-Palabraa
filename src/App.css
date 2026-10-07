@@ -55,6 +55,18 @@ main { grid-column: 2; min-width: 0; }
 .language-select { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; font-weight: 750; }
 .language-select select { border: 1px solid var(--line); border-radius: 9px; padding: 8px 27px 8px 10px; color: var(--ink); background: var(--card); font: inherit; font-size: 11px; }
 .language-select select:focus-visible { outline: 3px solid rgba(239,127,98,.4); outline-offset: 2px; }
+.feedback-card { max-width: 720px; padding: 28px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); box-shadow: 0 8px 25px rgba(30,57,53,.035); }
+.feedback-form { display: grid; gap: 18px; }
+.feedback-form > label { display: grid; gap: 8px; color: var(--ink); font-size: 12px; font-weight: 750; }
+.feedback-form select, .feedback-form textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px; color: var(--ink); background: var(--paper); font: inherit; font-size: 12px; }
+.feedback-form textarea { resize: vertical; line-height: 1.6; }
+.feedback-form select:focus-visible, .feedback-form textarea:focus-visible { outline: 3px solid rgba(239,127,98,.4); outline-offset: 2px; }
+.feedback-form label small, .feedback-context { color: var(--muted); font-size: 10px; font-weight: 450; line-height: 1.6; }
+.feedback-context { padding: 12px; border-radius: 9px; background: var(--paper); }
+.feedback-form > .primary-button { justify-self: start; }
+.feedback-unavailable h3 { margin: 0 0 10px; font-size: 16px; }
+.feedback-unavailable p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.feedback-unavailable code { padding: 2px 4px; border-radius: 4px; background: var(--paper); }
 .icon-button, .menu-button { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
 .menu-button { display: none; }
 .primary-button, .white-button, .secondary-button { border: 0; border-radius: 11px; padding: 12px 17px; font-size: 12px; font-weight: 750; transition: transform .18s, opacity .18s; }

@@ -11,6 +11,7 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 - A 21-item resource library with embedded videos and graded in-app readings, audio, and comprehension checks
 - 22 level-filtered practice activities with Spanish or Italian audio across Pre-A1–C2
 - An 18-question placement assessment for each language, spanning beginner through advanced
+- A feedback form for bug reports and improvement ideas, stored in Supabase when configured
 - Progress tracking with course and grammar completion, recorded study time, activity milestones, an editable daily goal, and a calendar-based learning streak
 - Optional email accounts with per-user cloud-synced progress through Supabase; without account configuration, progress remains saved in the current browser
 - Dark mode and browser-persisted progress
@@ -33,9 +34,10 @@ The app uses Supabase email/password authentication and a private `user_progress
 
 1. Create a free Supabase project.
 2. In the Supabase SQL editor, run [`supabase/schema.sql`](./supabase/schema.sql). The table uses row-level security so signed-in users can only read or change their own progress.
-3. Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to the project URL and its public publishable/anon key.
-4. Restart `npm run dev`. Open **Account** in the sidebar to create an account or sign in. On a new account, existing browser progress is migrated once; after that, each account keeps separate progress.
-5. In Supabase **Authentication → URL Configuration**, allow the local app URL (for example `http://localhost:5173`) and the deployed Cloudflare Pages URL. Email confirmation may be enabled by default.
+3. Run [`supabase/feedback.sql`](./supabase/feedback.sql) in the SQL editor to enable the public feedback form. Visitors can submit without signing in; row-level security allows inserts only, and feedback is not readable from the public app.
+4. Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to the project URL and its public publishable/anon key.
+5. Restart `npm run dev`. Open **Account** in the sidebar to create an account or sign in. On a new account, existing browser progress is migrated once; after that, each account keeps separate progress.
+6. In Supabase **Authentication → URL Configuration**, allow the local app URL (for example `http://localhost:5173`) and the deployed Cloudflare Pages URL. Email confirmation may be enabled by default.
 
 Only the public publishable/anon key belongs in the frontend. Never put a Supabase `service_role` key in `.env.local`, Cloudflare build variables, or any `VITE_` variable. Keep the SQL row-level security policies enabled. Supabase's built-in email sender has restrictive delivery/rate limits; if confirmation messages to your friend are not delivered, configure an SMTP provider in Supabase. Free-tier limits and availability can change.
 
