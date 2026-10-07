@@ -250,12 +250,12 @@ main { grid-column: 2; min-width: 0; }
 .resource-art.video { background: linear-gradient(135deg, #c56d51, #ed9a79); }
 .resource-art.reading { background: linear-gradient(135deg, #756c99, #a69bc8); }
 .resource-art span { position: relative; z-index: 2; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); backdrop-filter: blur(5px); }
-.resource-card > div:last-child { padding: 19px; }
-.resource-meta { display: flex; justify-content: space-between; color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
-.resource-card h3 { margin: 9px 0 6px; font-size: 16px; }
-.resource-card p { min-height: 42px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.resource-card > div:last-child { min-width: 0; padding: 19px; }
+.resource-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; color: var(--coral); font-size: 9px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
+.resource-card h3 { overflow-wrap: anywhere; margin: 9px 0 6px; font-size: 16px; }
+.resource-card p { min-height: 42px; overflow-wrap: anywhere; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .resource-footer { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.resource-footer small { color: var(--muted); font-size: 9px; }
+.resource-footer small { overflow-wrap: anywhere; color: var(--muted); font-size: 9px; }
 .resource-open { border: 0; padding: 4px 7px; border-radius: 7px; color: var(--green); background: var(--mint); font-size: 11px; font-weight: 850; cursor: pointer; }
 .resource-open:hover { color: #fff; background: var(--green); }
 .lesson-view { max-width: 1120px; }
@@ -279,7 +279,7 @@ main { grid-column: 2; min-width: 0; }
 .dlpt-passage p { margin: 0 0 18px; color: var(--ink); white-space: pre-line; font: 430 16px/1.9 Georgia, serif; }
 .course-passage p { margin: 24px 0 0; color: var(--ink); white-space: pre-line; font: 430 16px/1.9 Georgia, serif; }
 .course-passage p + p { margin-top: 1.1em; }
-.ilr-disclaimer { margin: -8px 0 20px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.ilr-disclaimer { margin: 12px 0 20px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .comprehension h3 { margin: 0 0 16px; font-size: 17px; }
 .comprehension > div { margin-bottom: 16px; }
 .comprehension strong { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; }
@@ -418,3 +418,25 @@ main { grid-column: 2; min-width: 0; }
 .auth-loading { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: var(--ink); background: var(--paper); font-size: 13px; }
 .auth-loading .brand-mark { width: 44px; height: 44px; }
 @media (max-width: 760px) { .account-dialog { padding: 29px 22px; } .sync-indicator { padding: 7px 8px; font-size: 9px; } }
+.course-level-badge { flex: 0 0 auto; display: inline-grid; justify-self: start; justify-items: start; gap: 2px; width: max-content; min-width: 78px; max-width: 100%; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--green) 12%, transparent); border-radius: 10px; color: var(--green); background: var(--mint); line-height: 1.15; }
+.course-level-badge strong { font-size: 12px; font-weight: 850; white-space: nowrap; }
+.course-level-badge small { color: var(--muted); font-size: 8px; font-weight: 750; letter-spacing: .15px; white-space: nowrap; }
+.resource-meta .course-level-badge { margin-top: -5px; }
+.section-heading > div, .lesson-hero > div, .learn-level-heading > div, .grammar-level-heading > div { min-width: 0; }
+.plan-lesson .section-heading { align-items: flex-start; }
+.learn-level-heading > div, .grammar-level-heading > div { flex-wrap: wrap; }
+.learn-level-heading > small, .grammar-level-heading > small { white-space: normal; }
+@media (max-width: 760px) {
+  .course-level-badge { min-width: 74px; padding: 6px 8px; }
+  .resource-meta .course-level-badge { margin-top: -4px; }
+  .section-heading > div, .lesson-hero > div { width: 100%; }
+  .topbar { gap: 8px; }
+  .topbar > div:first-of-type { min-width: 0; }
+  .topbar .eyebrow { display: none; }
+  .topbar h1 { max-width: 100%; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .top-actions { min-width: 0; gap: 6px; }
+  .language-select { min-width: 0; }
+  .language-select > span { display: none; }
+  .language-select select { width: clamp(118px, 36vw, 150px); min-width: 0; padding: 8px 22px 8px 8px; }
+  .topbar .icon-button { flex: 0 0 42px; }
+}

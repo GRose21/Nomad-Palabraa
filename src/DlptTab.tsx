@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { CourseLevel } from './learnCourse'
 import type { Resource } from './resourceCatalog'
-import { formatCourseLevel, ilrDisclaimer } from './ilr'
+import { ilrDisclaimer } from './ilr'
 import PassageText from './PassageText'
+import CourseLevelBadge from './CourseLevelBadge'
 
 type DlptTabProps = {
   language: string
@@ -31,8 +32,8 @@ function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
       <div className="content lesson-view">
         <button className="back-button" onClick={() => setSelected(null)}>← All DLPT-style readings</button>
         <div className="lesson-hero">
-          <div><span className="eyebrow">DLPT-STYLE READING PRACTICE</span><h2>{selected.title}</h2><p>{formatCourseLevel(level)} · Read the passage first, then answer all questions.</p></div>
-          <span className="level-badge">{formatCourseLevel(level)}</span>
+          <div><span className="eyebrow">DLPT-STYLE READING PRACTICE</span><h2>{selected.title}</h2><p>Read the passage first, then answer all questions.</p></div>
+          <CourseLevelBadge level={level} />
         </div>
         <article className="reading-panel">
           <div className="reading-text">
@@ -87,7 +88,7 @@ function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
             }
           }}>
             <div className="resource-art reading"><span>文</span></div>
-            <div><div className="resource-meta"><span>READING</span><span>{formatCourseLevel(level)}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.comprehension?.length ?? 0} multiple-choice questions</small><span className="resource-open">Start practice →</span></div></div>
+            <div><div className="resource-meta"><span>READING</span><CourseLevelBadge level={level} /></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.comprehension?.length ?? 0} multiple-choice questions</small><span className="resource-open">Start practice →</span></div></div>
           </article>
         })}
       </div>

@@ -10,6 +10,7 @@ import { italianLevelVideoResources, spanishLevelVideoResources } from './resour
 import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, type LearningLanguage } from './extraLanguages'
 import { buildDlptReadingResources } from './dlptPractice'
 import { formatCourseLevel, ilrDisclaimer } from './ilr'
+import CourseLevelBadge from './CourseLevelBadge'
 import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
@@ -1431,7 +1432,7 @@ function App() {
                   <div className="result-badge">{level ?? '—'}</div>
                   <span className="eyebrow">ASSESSMENT COMPLETE</span>
                   <h3>{currentLevel?.title ?? 'Assessment complete'}</h3>
-                  {level && <p><strong>{formatCourseLevel(level)}</strong></p>}
+                  {level && <CourseLevelBadge level={level} />}
                   <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {activeAssessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
                   <button className="primary-button" onClick={() => navigate('learn')}>View my plan →</button>
                 </div>
@@ -1445,7 +1446,7 @@ function App() {
             {selectedPlan ? (
               <div className="plan-lesson">
                 <button className="back-button" onClick={() => setSelectedPlan(null)}>← Back to learning path</button>
-                <div className="section-heading"><div><span className="eyebrow">{formatCourseLevel(selectedPlan.courseLevel)} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><span className="level-badge">{formatCourseLevel(selectedPlan.courseLevel)}</span></div>
+                <div className="section-heading"><div><span className="eyebrow">{selectedPlan.courseLevel} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><CourseLevelBadge level={selectedPlan.courseLevel} /></div>
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
                     <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
@@ -1520,7 +1521,7 @@ function App() {
                   const completedInLevel = levelLessons.filter((plan) => completedLearnLessons.includes(plan.id)).length
                   return <section className="learn-level" key={courseLevel}>
                     <div className="learn-level-heading">
-                      <div><span className="level-badge">{formatCourseLevel(courseLevel)}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
+                      <div><CourseLevelBadge level={courseLevel} /><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No prior knowledge of ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
                       <small>{completedInLevel} / {levelLessons.length} complete</small>
                     </div>
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
@@ -1550,7 +1551,7 @@ function App() {
             {selectedResource ? (
               <div className="lesson-view">
                 <button className="back-button" onClick={() => setSelectedResource(null)}>← Back to library</button>
-                <div className="lesson-hero"><div><span className="eyebrow">{selectedResource.type === 'video' ? 'VIDEO RESOURCE' : 'READING RESOURCE'}</span><h2>{selectedResource.title}</h2><p>{selectedResource.description}</p></div><span className="level-badge">{selectedResource.level === 'Pre-A1' || isLevel(selectedResource.level) ? formatCourseLevel(selectedResource.level) : selectedResource.level}</span></div>
+                <div className="lesson-hero"><div><span className="eyebrow">{selectedResource.type === 'video' ? 'VIDEO RESOURCE' : 'READING RESOURCE'}</span><h2>{selectedResource.title}</h2><p>{selectedResource.description}</p></div>{selectedResource.level === 'Pre-A1' || isLevel(selectedResource.level) ? <CourseLevelBadge level={selectedResource.level} /> : <span className="course-level-badge"><strong>{selectedResource.level}</strong></span>}</div>
                 {selectedResource.type === 'video' && (
                   <>
                     {selectedResource.embedUrl
@@ -1585,7 +1586,7 @@ function App() {
             ) : (
               <>
                 <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>{isItalian || extraPack ? 'Read & listen' : 'Watch, listen & read'}</h2><p>Graded passages, comprehension practice, and learning resources for every stage of your {learningLanguage} journey.</p><span className="question-count">{visibleResources.length} of {activeResources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{resourceTypeFilters.map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
-                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos' : 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level === 'Pre-A1' || isLevel(resource.level) ? formatCourseLevel(resource.level) : resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos →' : 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
+                <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title} role="button" tabIndex={0} aria-label={`${resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos' : 'Watch video' : 'Read and practice'}: ${resource.title}`} onClick={() => openResource(resource)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResource(resource) } }}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span>{resource.level === 'Pre-A1' || isLevel(resource.level) ? <CourseLevelBadge level={resource.level} /> : <span className="course-level-badge"><strong>{resource.level}</strong></span>}</div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><span className="resource-open">{resource.type === 'video' ? resource.source === 'YouTube video search' ? 'Browse videos →' : 'Watch video →' : 'Read & practice →'}</span></div></div></article>)}</div>
               </>
             )}
           </div>
