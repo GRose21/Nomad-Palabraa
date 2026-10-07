@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { grammarLessons } from './grammar.ts'
 import { getVocabulary } from './vocabulary.ts'
+import { getDlptVocabulary, dlptVocabularyTopics } from './dlptVocabulary.ts'
+import { learningLanguages } from './extraLanguages.ts'
 
 test('builds vocabulary from the example translations in grammar lessons', () => {
   const entries = getVocabulary()
@@ -26,4 +28,39 @@ test('automatically includes vocabulary examples from newly added lessons', () =
   }
   const entries = getVocabulary([...grammarLessons, newLesson])
   assert.ok(entries.some((entry) => entry.lessonId === newLesson.id && entry.spanish === 'La niña canta.' && entry.english === 'The girl sings.'))
+})
+
+test('provides at least 1,000 unique, leveled DLPT vocabulary words for every language', () => {
+  for (const language of learningLanguages) {
+    const entries = getDlptVocabulary(language)
+    assert.ok(entries.length >= 1000, `${language} should contain at least 1,000 words`)
+    assert.equal(new Set(entries.map((entry) => entry.spanish.toLocaleLowerCase())).size, entries.length, `${language} target words should be unique`)
+    assert.equal(new Set(entries.map((entry) => entry.english.toLocaleLowerCase())).size, entries.length, `${language} English prompts should be unique`)
+    for (const level of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+      assert.equal(entries.filter((entry) => entry.level === level).length, 200, `${language} should contain 200 ${level} words`)
+    }
+    for (const topic of dlptVocabularyTopics) {
+      assert.ok(entries.some((entry) => entry.topic === topic), `${language} should include the ${topic} topic`)
+    }
+  }
+})
+
+test('deduplicates DLPT vocabulary against lesson vocabulary while preserving topic metadata', () => {
+  const existing = getVocabulary()
+  const duplicate = existing[0]
+  const additions = [{
+    ...duplicate,
+    lessonId: 'dlpt-duplicate',
+    lessonTitle: 'DLPT · duplicate',
+    topic: 'Politics & government',
+  }]
+  const combined = getVocabulary(grammarLessons, undefined, undefined, undefined, additions)
+  assert.equal(combined.filter((entry) =>
+    entry.spanish.toLocaleLowerCase() === duplicate.spanish.toLocaleLowerCase()
+    && entry.english.toLocaleLowerCase() === duplicate.english.toLocaleLowerCase(),
+  ).length, 1)
+
+  const dlptEntry = getDlptVocabulary('Spanish')[0]
+  const withDlpt = getVocabulary(grammarLessons, undefined, undefined, undefined, [dlptEntry])
+  assert.ok(withDlpt.some((entry) => entry.lessonId === dlptEntry.lessonId && entry.topic === dlptEntry.topic))
 })

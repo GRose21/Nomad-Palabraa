@@ -8,7 +8,7 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 - Progressive learning paths for all five languages from Pre-A1 (no prior knowledge) through C2, with ten lessons per CEFR level, vocabulary, grammar, level-scaled multi-paragraph readings, comprehension, listening, unrecorded speaking prompts, and saved lesson progress; Arabic lesson passages use Arabic text only
 - College-style course framing from first-year elementary study through a fourth-year advanced capstone, with level-specific communication outcomes, signature projects, and independent study guidance; these are study guides, not college-credit equivalencies
 - Grammar sequences that progress from foundational forms to advanced academic syntax, source attribution, register, and rhetoric, with expanded multi-section lessons and scored practice for Mandarin, Arabic, and Russian
-- Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
+- Searchable, CEFR-filtered vocabulary libraries with at least 1,000 unique DLPT-oriented words per language, plus vocabulary from grammar and learning-path lessons; practice with level- and topic-filtered flashcards, multiple-choice quizzes, and matching rounds
 - CEFR-filtered video and reading resources with audio and comprehension checks; new-language video entries open level-matched YouTube results
 - Level-filtered practice activities with browser audio across Pre-A1–C2
 - Speech playback controls with pause, resume, and stop; playback prefers an installed enhanced voice when available, while voice quality still depends on the browser and operating system
@@ -26,6 +26,8 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 - Responsive desktop, tablet, and mobile design
 
 Grammar lesson examples that should appear in Vocabulary use the format `target-language phrase — English translation`; those pairs are extracted and deduplicated automatically. Vocabulary also includes the translated terms attached to Pre-A1 and Learn-path lessons.
+
+The bundled DLPT vocabulary subset is aligned through Open Multilingual Wordnet's Wiktionary-derived entries and ordered into approximate CEFR practice bands using `wordfreq` English frequency data. Word-level CEFR bands are study guidance, not an official vocabulary syllabus. The adapted vocabulary data is distributed under CC BY-SA 4.0. Source data: [Open Multilingual Wordnet](https://github.com/omwn/omw-data) (Wiktionary entries, CC BY-SA 3.0; cite Bond and Foster, 2013, “Linking and extending an open multilingual wordnet,” ACL 2013) and [wordfreq](https://github.com/rspeer/wordfreq) by Robyn Speer (data under CC BY-SA 4.0; see its [NOTICE](https://github.com/rspeer/wordfreq/blob/master/NOTICE.md) for source-specific attributions, including SUBTLEX contributors, Wikipedia, Leeds Internet Corpus, ParaCrawl, OpenSubtitles, and Google Books Ngrams). Translations are sense-linked dictionary equivalents and may need context to select the right meaning.
 
 ## Run locally
 

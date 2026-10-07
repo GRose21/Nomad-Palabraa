@@ -5,6 +5,7 @@ import { courseLevelInfo, courseLevels, lessonSupport, starterLessons, supplemen
 import { assessmentQuestions } from './assessment'
 import { activityCards } from './practice'
 import { getVocabulary } from './vocabulary'
+import { getDlptVocabulary } from './dlptVocabulary'
 import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, italianGrammarLessons, italianGrammarLevels, italianLessonContent, italianLessonSupport, italianPlans, italianStarters, italianSupplementalLessons } from './italian'
 import { italianLevelVideoResources, spanishLevelVideoResources } from './resourceVideos'
 import { additionalLanguagePacks, getLanguageTextMetadata, isLearningLanguage, type LearningLanguage } from './extraLanguages'
@@ -453,7 +454,7 @@ function App() {
       listeningPrompt: lesson.listeningPrompt,
     },
   ])) as Record<string, LessonSupport>, [activeSupplementalLessons])
-  const activeVocabulary = useMemo(() => getVocabulary(activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons), [activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons])
+  const activeVocabulary = useMemo(() => getVocabulary(activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons, getDlptVocabulary(learningLanguage)), [activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons, learningLanguage])
   const [user, setUser] = useState<User | null>(null)
   const userId = user?.id ?? null
   const [authReady, setAuthReady] = useState(!supabase)
@@ -1555,7 +1556,7 @@ function App() {
                 {[
                   ['01', 'Continue your course', nextLearnLesson ? `${nextLearnLesson.courseLevel} · ${nextLearnLesson.title}` : 'All course lessons complete'],
                   ['02', 'Explore grammar', `${completedGrammarLessons.length} of ${activeGrammarLessons.length} lessons complete`],
-                  ['03', 'Review vocabulary', `${activeVocabulary.length} phrases across Pre-A1–C2`],
+                  ['03', 'Review vocabulary', '1,200+ DLPT terms plus course vocabulary'],
                 ].map(([number, title, detail], index) => <button className="focus-row" key={number} onClick={() => {
                   if (index === 0 && nextLearnLesson) startPlan(nextLearnLesson)
                   else navigate(index === 1 ? 'grammar' : index === 2 ? 'vocabulary' : 'learn')
@@ -1723,7 +1724,7 @@ function App() {
 
         {page === 'grammar' && <GrammarTab key={`${grammarTabKey}-${learningLanguage}`} completedLessons={completedGrammarLessons} onComplete={completeGrammarLesson} lessons={activeGrammarLessons} levels={activeGrammarLevels} language={learningLanguage} />}
 
-        {page === 'vocabulary' && <VocabularyTab entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} />}
+        {page === 'vocabulary' && <VocabularyTab key={learningLanguage} entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} />}
 
         {page === 'resources' && (
           <div className="content">

@@ -7,6 +7,7 @@ export type VocabularyEntry = {
   lessonId: string
   lessonTitle: string
   level: CourseLevel
+  topic?: string
 }
 
 export function getVocabulary(
@@ -14,6 +15,7 @@ export function getVocabulary(
   starters = starterLessons,
   supports: Record<string, typeof lessonSupport[string]> = lessonSupport,
   supplements = supplementalLessons,
+  additions: VocabularyEntry[] = [],
 ): VocabularyEntry[] {
   const entries = new Map<string, VocabularyEntry>()
   const addEntry = (entry: VocabularyEntry) => {
@@ -75,6 +77,8 @@ export function getVocabulary(
       addEntry({ ...word, lessonId: lesson.id, lessonTitle: lesson.title, level: lesson.level })
     }
   }
+
+  for (const entry of additions) addEntry(entry)
 
   return [...entries.values()].sort((first, second) =>
     courseLevels.indexOf(first.level) - courseLevels.indexOf(second.level),
