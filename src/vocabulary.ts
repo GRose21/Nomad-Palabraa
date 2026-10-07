@@ -8,6 +8,8 @@ export type VocabularyEntry = {
   lessonTitle: string
   level: CourseLevel
   topic?: string
+  sense?: string
+  dictionarySources?: string[]
 }
 
 export function getVocabulary(

@@ -27,7 +27,17 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 
 Grammar lesson examples that should appear in Vocabulary use the format `target-language phrase — English translation`; those pairs are extracted and deduplicated automatically. Vocabulary also includes the translated terms attached to Pre-A1 and Learn-path lessons.
 
-The bundled DLPT vocabulary subset is aligned through Open Multilingual Wordnet's Wiktionary-derived entries and ordered into approximate CEFR practice bands using `wordfreq` English frequency data. Word-level CEFR bands are study guidance, not an official vocabulary syllabus. The adapted vocabulary data is distributed under CC BY-SA 4.0. Source data: [Open Multilingual Wordnet](https://github.com/omwn/omw-data) (Wiktionary entries, CC BY-SA 3.0; cite Bond and Foster, 2013, “Linking and extending an open multilingual wordnet,” ACL 2013) and [wordfreq](https://github.com/rspeer/wordfreq) by Robyn Speer (data under CC BY-SA 4.0; see its [NOTICE](https://github.com/rspeer/wordfreq/blob/master/NOTICE.md) for source-specific attributions, including SUBTLEX contributors, Wikipedia, Leeds Internet Corpus, ParaCrawl, OpenSubtitles, and Google Books Ngrams). Translations are sense-linked dictionary equivalents and may need context to select the right meaning.
+The bundled DLPT vocabulary subset was rebuilt from exact shared synsets in Princeton WordNet 3.0 and an independent target-language lexical resource. Every entry includes a short English sense definition and source identifiers; Italian entries are cross-checked against both MultiWordNet and ItalWordNet. The app shows the intended sense and the dictionaries used when a card is revealed. CEFR practice bands are approximate study guidance, ordered with `wordfreq` frequency data; they are not an official vocabulary syllabus or a guarantee that every dictionary equivalent is interchangeable in all contexts.
+
+Source identifiers and attribution:
+- `PWN-3.0`: Princeton WordNet 3.0, Princeton University; see the [WordNet license](https://wordnet.princeton.edu/license-and-commercial-use).
+- `MCR-SPA`: Spanish Multilingual Central Repository, CC BY 3.0.
+- `MWN-ITA`: Italian MultiWordNet, CC BY 3.0; `IWN-ITA`: Italian ItalWordNet, ODC-By 1.0.
+- `COW-CMN`: Chinese Open Wordnet; retain its source copyright and disclaimer notices.
+- `AWN-ARB`: Arabic WordNet, CC BY-SA 3.0.
+- `WIKT-RUS`: Russian Wiktionary-derived entries in Open Multilingual Wordnet, CC BY-SA 3.0. Cite Bond and Foster, 2013, “Linking and extending an open multilingual wordnet,” ACL 2013.
+
+The vocabulary includes adapted material under the applicable source licenses; source identifiers are attached per entry because the five language resources do not all share one license. Frequency ordering uses [wordfreq](https://github.com/rspeer/wordfreq) by Robyn Speer (data under CC BY-SA 4.0); see its [NOTICE](https://github.com/rspeer/wordfreq/blob/master/NOTICE.md) for source-specific attributions, including SUBTLEX contributors, Wikipedia, Leeds Internet Corpus, ParaCrawl, OpenSubtitles, and Google Books Ngrams. Vocabulary added directly by lessons is authored separately and is not part of this dictionary cross-check.
 
 ## Run locally
 

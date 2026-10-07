@@ -234,6 +234,8 @@ main { grid-column: 2; min-width: 0; }
 .vocabulary-meta span:first-child { color: var(--coral); }
 .vocabulary-card > strong { font: 700 17px/1.4 Georgia, serif; }
 .vocabulary-translation { color: var(--green); font-size: 12px; line-height: 1.5; }
+.vocabulary-sense { color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.5; }
+.vocabulary-evidence { color: var(--muted); font-size: 9px; font-weight: 500; line-height: 1.45; }
 .vocabulary-source { margin-top: auto; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
 .vocabulary-empty { padding: 24px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); text-align: center; font-size: 12px; }
 .vocabulary-practice { margin: 0 0 22px; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }

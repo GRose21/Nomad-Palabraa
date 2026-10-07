@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { courseLevels, getVocabulary, type VocabularyEntry } from './vocabulary'
+import { dlptDictionarySourceLabels } from './dlptVocabulary'
 import type { CourseLevel } from './learnCourse'
 
 type VocabularyTabProps = {
@@ -84,7 +85,7 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
     return vocabulary.filter((entry) => {
       const matchesLevel = levelFilter === 'all' || entry.level === levelFilter
       const matchesTopic = topicFilter === 'all' || entry.topic === topicFilter
-      const matchesSearch = !normalizedSearch || `${entry.spanish} ${entry.english} ${entry.lessonTitle}`.toLocaleLowerCase().includes(normalizedSearch)
+      const matchesSearch = !normalizedSearch || `${entry.spanish} ${entry.english} ${entry.sense ?? ''} ${entry.lessonTitle}`.toLocaleLowerCase().includes(normalizedSearch)
       return matchesLevel && matchesTopic && matchesSearch
     })
   }, [levelFilter, search, topicFilter, vocabulary])
@@ -189,7 +190,11 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
               <div className="vocabulary-flashcard">
                 <span>{currentFlashcard.level}{currentFlashcard.topic ? ` · ${currentFlashcard.topic}` : ''}</span>
                 <strong lang={targetLanguageCode} dir={targetDirection}>{currentFlashcard.spanish}</strong>
-                {flashcardRevealed ? <p>{currentFlashcard.english}</p> : <button className="secondary-button" onClick={() => setFlashcardRevealed(true)}>Reveal meaning</button>}
+                {flashcardRevealed ? <>
+                  <p>{currentFlashcard.english}</p>
+                  {currentFlashcard.sense && <small className="vocabulary-sense">{currentFlashcard.sense}</small>}
+                  {currentFlashcard.dictionarySources && <small className="vocabulary-evidence">Cross-checked in {currentFlashcard.dictionarySources.map((source) => dlptDictionarySourceLabels[source]).join(' · ')}</small>}
+                </> : <button className="secondary-button" onClick={() => setFlashcardRevealed(true)}>Reveal meaning</button>}
               </div>
               {flashcardRevealed && <div className="vocabulary-game-actions">
                 <button className="secondary-button" onClick={() => { setFlashcardIndex((index) => index + 1); setFlashcardRevealed(false) }}>Still learning</button>
@@ -255,7 +260,11 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
           return <button className={`vocabulary-card${isRevealed ? ' revealed' : ''}`} key={key} onClick={() => toggleEntry(entry)} aria-expanded={isRevealed}>
             <span className="vocabulary-meta"><span>{entry.level}{entry.topic ? ` · ${entry.topic}` : ''}</span><span>{isRevealed ? 'MEANING' : 'TAP TO REVEAL'}</span></span>
             <strong lang={targetLanguageCode} dir={targetDirection}>{entry.spanish}</strong>
-            {isRevealed && <span className="vocabulary-translation">{entry.english}</span>}
+            {isRevealed && <>
+              <span className="vocabulary-translation">{entry.english}</span>
+              {entry.sense && <span className="vocabulary-sense">{entry.sense}</span>}
+              {entry.dictionarySources && <span className="vocabulary-evidence">Cross-checked in {entry.dictionarySources.map((source) => dlptDictionarySourceLabels[source]).join(' · ')}</span>}
+            </>}
             <span className="vocabulary-source">{entry.lessonTitle}</span>
           </button>
         })}

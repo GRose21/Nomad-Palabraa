@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { grammarLessons } from './grammar.ts'
 import { getVocabulary } from './vocabulary.ts'
-import { getDlptVocabulary, dlptVocabularyTopics } from './dlptVocabulary.ts'
+import { dlptDictionarySourceLabels, getDlptVocabulary, dlptVocabularyTopics } from './dlptVocabulary.ts'
 import { learningLanguages } from './extraLanguages.ts'
 
 test('builds vocabulary from the example translations in grammar lessons', () => {
@@ -36,6 +36,12 @@ test('provides at least 1,000 unique, leveled DLPT vocabulary words for every la
     assert.ok(entries.length >= 1000, `${language} should contain at least 1,000 words`)
     assert.equal(new Set(entries.map((entry) => entry.spanish.toLocaleLowerCase())).size, entries.length, `${language} target words should be unique`)
     assert.equal(new Set(entries.map((entry) => entry.english.toLocaleLowerCase())).size, entries.length, `${language} English prompts should be unique`)
+    for (const entry of entries) {
+      assert.ok(entry.sense, `${language} ${entry.spanish} should include its dictionary sense`)
+      assert.ok(entry.dictionarySources && entry.dictionarySources.length >= 2, `${language} ${entry.spanish} should cite at least two dictionaries`)
+      assert.ok(entry.dictionarySources.every((source) => source in dlptDictionarySourceLabels), `${language} ${entry.spanish} should cite known dictionaries`)
+      assert.ok(entry.dictionarySources.includes('PWN-3.0'), `${language} ${entry.spanish} should be aligned with Princeton WordNet`)
+    }
     for (const level of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
       assert.equal(entries.filter((entry) => entry.level === level).length, 200, `${language} should contain 200 ${level} words`)
     }
