@@ -13,41 +13,21 @@ import { formatCourseLevel, ilrDisclaimer } from './ilr'
 import CourseLevelBadge from './CourseLevelBadge'
 import AudioControl from './AudioControl'
 import AudioDock from './AudioDock'
-import { chooseSpeechVoice, speechRate } from './speech'
+import ListeningTranscript from './ListeningTranscript'
+import { chooseSpeechVoice, rewindSpeechIndex, speechRate } from './speech'
+import CourseAssessmentPanel from './CourseAssessmentPanel'
+import { getNextCourseAssessmentMilestone } from './courseAssessmentSchedule'
 import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import DlptTab from './DlptTab'
-import PassageText from './PassageText'
 import { supabase } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import './App.css'
 
 type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'dlpt' | 'progress' | 'feedback'
 type FeedbackCategory = 'bug' | 'recommendation' | 'other'
-type SpeechRecognitionAlternative = { transcript: string }
-type SpeechRecognitionResult = ArrayLike<SpeechRecognitionAlternative>
-type SpeechRecognitionEvent = { results: ArrayLike<SpeechRecognitionResult> }
-type SpeechRecognitionErrorEvent = { error: string }
-type BrowserSpeechRecognition = {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((event: SpeechRecognitionEvent) => void) | null
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
-  onend: (() => void) | null
-  start: () => void
-  stop: () => void
-}
-type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition
-
-declare global {
-  interface Window {
-    SpeechRecognition?: BrowserSpeechRecognitionConstructor
-    webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor
-  }
-}
 
 const levelData: Record<Level, { label: string; title: string; description: string; progress: number }> = {
   A1: { label: 'A1', title: 'Beginner', description: 'Build basic words and simple phrases for everyday situations.', progress: 25 },
@@ -59,6 +39,7 @@ const levelData: Record<Level, { label: string; title: string; description: stri
 }
 const isLevel = (value: unknown): value is Level =>
   ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].some((candidate) => candidate === value)
+const passageKey = (language: string, text: string) => `${language}:${text}`
 
 const coreResources: Resource[] = [
   { type: 'video', title: 'Spanish Greetings: Formal, Casual & Slang', description: 'Learn useful ways to greet people in Spanish, from formal to casual.', source: 'The Language Tutor', level: 'A1–A2', tag: 'Video lesson', url: 'https://www.youtube.com/watch?v=AqfQQZVmTUw', embedUrl: 'https://www.youtube-nocookie.com/embed/AqfQQZVmTUw', passage: 'En una reunión formal, puedes decir «Buenos días» y usar «usted» para mostrar respeto. Con amigos, «Hola, ¿qué tal?» suena natural y cercano. En algunas regiones se oyen saludos informales como «¿Qué onda?», pero las expresiones cambian según el lugar y la situación.', comprehension: [{ prompt: 'Which greeting is presented as a respectful formal option?', answers: ['¿Qué onda?', 'Buenos días', '¿Qué tal?', 'Hasta luego'], correctIndex: 1 }, { prompt: 'What should you consider before using a very informal greeting?', answers: ['The region and situation', 'The time of the bus', 'The person’s job title only', 'The length of the conversation'], correctIndex: 0 }] },
@@ -544,21 +525,34 @@ function App() {
   const [completedActivities, setCompletedActivities] = useState<number[]>(initialCompletedActivities)
   const [completedGrammarLessons, setCompletedGrammarLessons] = useState<string[]>(initialCompletedGrammarLessons)
   const [completedLearnLessons, setCompletedLearnLessons] = useState<string[]>(initialCompletedLearnLessons)
+  const [completedCourseAssessments, setCompletedCourseAssessments] = useState<number[]>(() =>
+    Array.isArray(storedState.completedCourseAssessments)
+      ? [...new Set(storedState.completedCourseAssessments.filter((milestone: unknown): milestone is number =>
+        typeof milestone === 'number' && Number.isInteger(milestone) && milestone >= 5 && milestone % 5 === 0,
+      ))]
+      : [],
+  )
   const [grammarTabKey, setGrammarTabKey] = useState(0)
   const [selectedPlan, setSelectedPlan] = useState<CoursePlan | null>(null)
   const [planAnswers, setPlanAnswers] = useState<number[]>([])
   const [planAnswersChecked, setPlanAnswersChecked] = useState(false)
-  const [speechPracticeStatus, setSpeechPracticeStatus] = useState<'idle' | 'listening' | 'ready' | 'error'>('idle')
-  const [speechTranscript, setSpeechTranscript] = useState('')
-  const [speechError, setSpeechError] = useState('')
-  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null)
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const activeSpeechTextRef = useRef('')
   const activeSpeechLanguageRef = useRef('')
+  const speechCharIndexRef = useRef(0)
+  const speechBaseIndexRef = useRef(0)
   const speechPlaybackStatusRef = useRef<'idle' | 'playing' | 'paused'>('idle')
   const [speechPlaybackStatus, setSpeechPlaybackStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [activeSpeechText, setActiveSpeechText] = useState('')
   const [activeSpeechLanguage, setActiveSpeechLanguage] = useState('')
+  const [speechCharIndex, setSpeechCharIndex] = useState(0)
+  const assessmentAudioTextRef = useRef('')
+  const assessmentAudioPlayCountRef = useRef(0)
+  const [assessmentAudioText, setAssessmentAudioText] = useState('')
+  const [assessmentAudioPlayCount, setAssessmentAudioPlayCount] = useState(0)
+  const [listenedPassages, setListenedPassages] = useState<Set<string>>(() => new Set())
+  const [visibleTranscripts, setVisibleTranscripts] = useState<Set<string>>(() => new Set())
+  const [selectedCourseAssessment, setSelectedCourseAssessment] = useState<number | null>(null)
   const [minutes, setMinutes] = useState(initialDailyState.minutes)
   const [lastActivityDate, setLastActivityDate] = useState(initialDailyState.lastActivityDate)
   const [dailyActivityGoal, setDailyActivityGoal] = useState(initialActivityGoal)
@@ -605,6 +599,11 @@ function App() {
       : [])
     setCompletedLearnLessons(Array.isArray(state.completedLearnLessons)
       ? [...new Set(state.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && activeCoursePlans.some((plan) => plan.id === id)))]
+      : [])
+    setCompletedCourseAssessments(Array.isArray(state.completedCourseAssessments)
+      ? [...new Set(state.completedCourseAssessments.filter((milestone: unknown): milestone is number =>
+        typeof milestone === 'number' && Number.isInteger(milestone) && milestone >= 5 && milestone % 5 === 0,
+      ))]
       : [])
   }, [currentDate, activeAssessmentQuestions.length, activeActivityCards.length, currentGrammarLessonIds, activeCoursePlans])
 
@@ -801,6 +800,7 @@ function App() {
           activeDates: [],
           completedGrammarLessons: [],
           completedLearnLessons: [],
+          completedCourseAssessments: [],
         }
       }
       applyProgressState(initialProgress)
@@ -848,7 +848,7 @@ function App() {
 
     const progress = {
       level, minutes, score, assessmentCompleted, darkMode, lastActivityDate, completedActivities,
-      dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons,
+      dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons, completedCourseAssessments,
     }
     if (userId && cloudWritableOwner !== userId) return
     try {
@@ -893,15 +893,11 @@ function App() {
       })
     }, 700)
     return () => window.clearTimeout(timeout)
-  }, [level, minutes, score, assessmentCompleted, darkMode, lastActivityDate, completedActivities, dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons, authReady, loadedProgressOwner, accountStorageKey, userId, cloudWritableOwner, learningLanguage])
+  }, [level, minutes, score, assessmentCompleted, darkMode, lastActivityDate, completedActivities, dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons, completedCourseAssessments, authReady, loadedProgressOwner, accountStorageKey, userId, cloudWritableOwner, learningLanguage])
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light'
   }, [darkMode])
-
-  useEffect(() => () => {
-    speechRecognitionRef.current?.stop()
-  }, [])
 
   const currentLevel = level ? levelData[level] : null
   const learningStreak = getStreak(activeDates, currentDate)
@@ -973,6 +969,15 @@ function App() {
     [resourceFilter, resourceLevelFilter, activeResources],
   )
   const dlptResources = activeResources.filter((resource) => resource.source === 'DLPT-style practice')
+  const nextAssessmentMilestone = getNextCourseAssessmentMilestone(completedLearnLessons.length, completedCourseAssessments)
+  const latestCompletedPlan = [...completedLearnLessons].reverse()
+    .map((id) => activeCoursePlans.find((plan) => plan.id === id))
+    .find((plan): plan is CoursePlan => Boolean(plan))
+  const assessmentLevel: CourseLevel = latestCompletedPlan?.courseLevel === 'Pre-A1' ? 'A1' : latestCompletedPlan?.courseLevel ?? 'A1'
+  const readingAssessmentResource = dlptResources.find((resource) => resource.level === assessmentLevel)
+  const listeningAssessmentResource = activeResources.find((resource) =>
+    resource.type === 'video' && resource.level === assessmentLevel && resource.passage && resource.comprehension?.length,
+  )
   const visibleActivityIndices = activeActivityCards
     .map((activity, index) => ({ activity, index }))
     .filter(({ activity }) => activityLevelFilter === 'all' || activity.level === activityLevelFilter)
@@ -1012,6 +1017,7 @@ function App() {
   }
 
   const navigate = (nextPage: Page) => {
+    if (selectedCourseAssessment !== null && nextPage !== 'learn') exitCourseAssessment()
     if (nextPage === 'learn') setSelectedPlan(null)
     if (nextPage === 'resources') setSelectedResource(null)
     if (nextPage === 'grammar') setGrammarTabKey((current) => current + 1)
@@ -1061,6 +1067,7 @@ function App() {
   }
 
   const openResource = (resource: Resource) => {
+    stopAudioPlayback()
     setSelectedResource(resource)
     setPassageAnswers([])
     setPassageScore(0)
@@ -1091,10 +1098,13 @@ function App() {
     speechUtteranceRef.current = null
     activeSpeechTextRef.current = ''
     activeSpeechLanguageRef.current = ''
+    speechCharIndexRef.current = 0
+    speechBaseIndexRef.current = 0
     speechPlaybackStatusRef.current = 'idle'
     setSpeechPlaybackStatus('idle')
     setActiveSpeechText('')
     setActiveSpeechLanguage('')
+    setSpeechCharIndex(0)
   }
 
   useEffect(() => () => {
@@ -1106,6 +1116,69 @@ function App() {
       stopAudioPlayback()
     }
   }, [targetLanguageCode])
+
+  const startSpeechFrom = (phrase: string, language: string, startIndex = 0) => {
+    const synthesis = window.speechSynthesis
+    const utterance = new SpeechSynthesisUtterance(phrase.slice(startIndex))
+    utterance.lang = language
+    utterance.rate = speechRate(language)
+    const voice = chooseSpeechVoice(synthesis.getVoices(), language)
+    if (voice) utterance.voice = voice
+    speechUtteranceRef.current = utterance
+    activeSpeechTextRef.current = phrase
+    activeSpeechLanguageRef.current = language
+    speechBaseIndexRef.current = startIndex
+    speechCharIndexRef.current = startIndex
+    speechPlaybackStatusRef.current = 'playing'
+    setActiveSpeechText(phrase)
+    setActiveSpeechLanguage(language)
+    setSpeechCharIndex(startIndex)
+    setSpeechPlaybackStatus('playing')
+    utterance.onboundary = (event) => {
+      if (speechUtteranceRef.current !== utterance || !Number.isFinite(event.charIndex)) return
+      const currentIndex = Math.min(phrase.length, startIndex + event.charIndex)
+      speechCharIndexRef.current = currentIndex
+      setSpeechCharIndex(currentIndex)
+    }
+    utterance.onend = () => {
+      if (speechUtteranceRef.current !== utterance) return
+      if (assessmentAudioTextRef.current !== phrase) {
+        setListenedPassages((current) => new Set(current).add(passageKey(language, phrase)))
+      }
+      speechUtteranceRef.current = null
+      activeSpeechTextRef.current = ''
+      activeSpeechLanguageRef.current = ''
+      speechCharIndexRef.current = 0
+      speechBaseIndexRef.current = 0
+      speechPlaybackStatusRef.current = 'idle'
+      setSpeechPlaybackStatus('idle')
+      setActiveSpeechText('')
+      setActiveSpeechLanguage('')
+      setSpeechCharIndex(0)
+    }
+    utterance.onerror = (event) => {
+      if (speechUtteranceRef.current !== utterance) return
+      speechUtteranceRef.current = null
+      activeSpeechTextRef.current = ''
+      activeSpeechLanguageRef.current = ''
+      speechCharIndexRef.current = 0
+      speechBaseIndexRef.current = 0
+      speechPlaybackStatusRef.current = 'idle'
+      setSpeechPlaybackStatus('idle')
+      setActiveSpeechText('')
+      setActiveSpeechLanguage('')
+      setSpeechCharIndex(0)
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        showToast(`Audio playback failed: ${event.error}.`)
+      }
+    }
+    try {
+      synthesis.speak(utterance)
+    } catch (error) {
+      stopAudioPlayback()
+      showToast(error instanceof Error ? `Audio playback failed: ${error.message}` : 'Audio playback failed.')
+    }
+  }
 
   const playActivityPhrase = (phrase: string) => {
     if (!('speechSynthesis' in window)) {
@@ -1129,106 +1202,31 @@ function App() {
       }
     }
 
-    synthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(phrase)
-    utterance.lang = targetLanguageCode
-    utterance.rate = speechRate(targetLanguageCode)
-    const voice = chooseSpeechVoice(synthesis.getVoices(), targetLanguageCode)
-    if (voice) utterance.voice = voice
-    activeSpeechTextRef.current = phrase
-    activeSpeechLanguageRef.current = targetLanguageCode
-    speechUtteranceRef.current = utterance
-    setActiveSpeechText(phrase)
-    setActiveSpeechLanguage(targetLanguageCode)
-    speechPlaybackStatusRef.current = 'playing'
-    setSpeechPlaybackStatus('playing')
-    utterance.onend = () => {
-      if (speechUtteranceRef.current !== utterance) return
-      speechUtteranceRef.current = null
-      activeSpeechTextRef.current = ''
-      activeSpeechLanguageRef.current = ''
-      speechPlaybackStatusRef.current = 'idle'
-      setSpeechPlaybackStatus('idle')
-      setActiveSpeechText('')
-      setActiveSpeechLanguage('')
-    }
-    utterance.onerror = (event) => {
-      if (speechUtteranceRef.current !== utterance) return
-      speechUtteranceRef.current = null
-      activeSpeechTextRef.current = ''
-      activeSpeechLanguageRef.current = ''
-      speechPlaybackStatusRef.current = 'idle'
-      setSpeechPlaybackStatus('idle')
-      setActiveSpeechText('')
-      setActiveSpeechLanguage('')
-      if (event.error !== 'canceled' && event.error !== 'interrupted') {
-        showToast(`Audio playback failed: ${event.error}.`)
+    if (assessmentAudioTextRef.current === phrase) {
+      if (assessmentAudioPlayCountRef.current >= 2) {
+        showToast('This assessment allows two listens to the audio.')
+        return
       }
+      assessmentAudioPlayCountRef.current += 1
+      setAssessmentAudioPlayCount(assessmentAudioPlayCountRef.current)
     }
-    try {
-      synthesis.speak(utterance)
-    } catch (error) {
-      stopAudioPlayback()
-      showToast(error instanceof Error ? `Audio playback failed: ${error.message}` : 'Audio playback failed.')
-    }
+    synthesis.cancel()
+    startSpeechFrom(phrase, targetLanguageCode)
   }
 
-  const startSpeakingPractice = () => {
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!Recognition) {
-      setSpeechPracticeStatus('error')
-      setSpeechError('Speech recognition is not supported in this browser. You can still practice by saying your response aloud.')
+  const rewindAudioPlayback = () => {
+    const phrase = activeSpeechTextRef.current
+    const language = activeSpeechLanguageRef.current
+    if (!phrase || !language || speechPlaybackStatusRef.current === 'idle') return
+    if (assessmentAudioTextRef.current === phrase) return
+    const targetIndex = rewindSpeechIndex(phrase, speechCharIndexRef.current, language)
+    if (targetIndex >= speechCharIndexRef.current) {
+      showToast('Audio is still near the beginning.')
       return
     }
-
-    speechRecognitionRef.current?.stop()
-    setSpeechTranscript('')
-    setSpeechError('')
-    setSpeechPracticeStatus('listening')
-
-    const recognition = new Recognition()
-    recognition.lang = targetLanguageCode
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.onresult = (event) => {
-      if (speechRecognitionRef.current !== recognition) return
-      const transcript = event.results[0]?.[0]?.transcript.trim()
-      if (transcript) {
-        setSpeechTranscript(transcript)
-        setSpeechPracticeStatus('ready')
-        if (selectedPlan) recordDailyActivity(`speaking-${selectedPlan.id}`)
-      }
-    }
-    recognition.onerror = (event) => {
-      if (speechRecognitionRef.current !== recognition) return
-      const messages: Record<string, string> = {
-        'not-allowed': 'Microphone access was blocked. Allow microphone access in your browser settings and try again.',
-        'service-not-allowed': 'The browser speech service is unavailable. Try again later or use another browser.',
-        'audio-capture': 'No microphone was detected. Connect a microphone and try again.',
-        'no-speech': 'No speech was detected. Try speaking a little louder and closer to your microphone.',
-        network: 'Speech recognition could not connect. Check your internet connection and try again.',
-      }
-      setSpeechError(messages[event.error] || `Speech recognition failed (${event.error}). Please try again.`)
-      setSpeechPracticeStatus('error')
-    }
-    recognition.onend = () => {
-      if (speechRecognitionRef.current !== recognition) return
-      speechRecognitionRef.current = null
-      setSpeechPracticeStatus((status) => status === 'listening' ? 'ready' : status)
-    }
-    speechRecognitionRef.current = recognition
-
-    try {
-      recognition.start()
-    } catch (error) {
-      speechRecognitionRef.current = null
-      setSpeechPracticeStatus('error')
-      setSpeechError(error instanceof Error ? `Could not start speech recognition: ${error.message}` : 'Could not start speech recognition. Please try again.')
-    }
-  }
-
-  const stopSpeakingPractice = () => {
-    speechRecognitionRef.current?.stop()
+    window.speechSynthesis.cancel()
+    speechUtteranceRef.current = null
+    startSpeechFrom(phrase, language, targetIndex)
   }
 
   const recordDailyActivity = (activityId: string) => {
@@ -1269,14 +1267,10 @@ function App() {
   }
 
   const startPlan = (plan: CoursePlan) => {
-    speechRecognitionRef.current?.stop()
-    speechRecognitionRef.current = null
+    stopAudioPlayback()
     setSelectedPlan(plan)
     setPlanAnswers([])
     setPlanAnswersChecked(false)
-    setSpeechPracticeStatus('idle')
-    setSpeechTranscript('')
-    setSpeechError('')
     setPage('learn')
     setMenuOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1300,6 +1294,45 @@ function App() {
       setCompletedLearnLessons((current) => current.includes(selectedPlan.id) ? current : [...current, selectedPlan.id])
       recordDailyActivity(`learn-${selectedPlan.id}`)
     }
+  }
+
+  const toggleTranscript = (language: string, text: string) => {
+    const key = passageKey(language, text)
+    setVisibleTranscripts((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const startCourseAssessment = (milestone: number) => {
+    if (!readingAssessmentResource || !listeningAssessmentResource?.passage) {
+      showToast('This checkpoint does not have reading and listening material available yet.')
+      return
+    }
+    stopAudioPlayback()
+    assessmentAudioTextRef.current = listeningAssessmentResource.passage
+    assessmentAudioPlayCountRef.current = 0
+    setAssessmentAudioText(listeningAssessmentResource.passage)
+    setAssessmentAudioPlayCount(0)
+    setSelectedCourseAssessment(milestone)
+    setPage('learn')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const finishCourseAssessment = (milestone: number, correct: number, total: number) => {
+    setCompletedCourseAssessments((current) => current.includes(milestone) ? current : [...current, milestone])
+    showToast(`Checkpoint complete: ${correct} of ${total} correct.`)
+  }
+
+  const exitCourseAssessment = () => {
+    stopAudioPlayback()
+    assessmentAudioTextRef.current = ''
+    assessmentAudioPlayCountRef.current = 0
+    setAssessmentAudioText('')
+    setAssessmentAudioPlayCount(0)
+    setSelectedCourseAssessment(null)
   }
 
   const saveActivityGoal = (event: FormEvent<HTMLFormElement>) => {
@@ -1362,14 +1395,18 @@ function App() {
 
   const changeLearningLanguage = (language: LearningLanguage) => {
     if (language === learningLanguage) return
+    stopAudioPlayback()
+    assessmentAudioTextRef.current = ''
+    assessmentAudioPlayCountRef.current = 0
+    setAssessmentAudioText('')
+    setAssessmentAudioPlayCount(0)
+    setSelectedCourseAssessment(null)
     setLoadedProgressOwner(null)
     try {
       localStorage.setItem('learning-language', language)
     } catch (error) {
       setCloudError(error instanceof Error ? `Could not save your language choice: ${error.message}` : 'Could not save your language choice.')
     }
-    speechRecognitionRef.current?.stop()
-    speechRecognitionRef.current = null
     setLearningLanguage(language)
     setPage('dashboard')
     setSelectedPlan(null)
@@ -1385,15 +1422,16 @@ function App() {
     setActivityLevelFilter('all')
     setActivityAnswer(null)
     setActivityFeedback('')
-    setSpeechPracticeStatus('idle')
-    setSpeechTranscript('')
-    setSpeechError('')
     setGrammarTabKey((key) => key + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const currentQuestion = activeAssessmentQuestions[questionIndex]
   const progress = Math.min(100, ((questionIndex + 1) / activeAssessmentQuestions.length) * 100)
+  const speakingPromptCards = [
+    selectedSupport?.speakingPrompt,
+    ...((selectedSupport?.vocabulary ?? []).slice(0, 2).map((word) => `Use “${word.spanish}” in a new sentence of your own.`)),
+  ].filter((prompt): prompt is string => Boolean(prompt))
   const currentPageTitle = page === 'learn'
     ? `Learn ${learningLanguage}`
     : page === 'grammar'
@@ -1528,7 +1566,23 @@ function App() {
 
         {page === 'learn' && (
           <div className="content">
-            {selectedPlan ? (
+            {selectedCourseAssessment !== null && readingAssessmentResource && listeningAssessmentResource?.passage ? (
+              <CourseAssessmentPanel
+                milestone={selectedCourseAssessment}
+                level={assessmentLevel}
+                language={learningLanguage}
+                lang={targetLanguageCode}
+                direction={targetTextDirection}
+                reading={readingAssessmentResource}
+                listening={listeningAssessmentResource}
+                listensUsed={assessmentAudioPlayCount}
+                activeAudioText={activeSpeechText}
+                audioStatus={speechPlaybackStatus}
+                onListen={playActivityPhrase}
+                onComplete={(correct, total) => finishCourseAssessment(selectedCourseAssessment, correct, total)}
+                onExit={exitCourseAssessment}
+              />
+            ) : selectedPlan ? (
               <div className="plan-lesson">
                 <button className="back-button" onClick={() => setSelectedPlan(null)}>← Back to learning path</button>
                 <div className="section-heading"><div><span className="eyebrow">{selectedPlan.courseLevel} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><CourseLevelBadge level={selectedPlan.courseLevel} /></div>
@@ -1556,7 +1610,14 @@ function App() {
                   <article className="plan-material">
                     <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span>{selectedLessonContent && <AudioControl phrase={selectedLessonContent.text} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedLessonContent.text && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen to passage" />}</div>
                     <p className="learn-listening-prompt"><strong>Listening focus:</strong> {selectedSupport?.listeningPrompt}</p>
-                    {selectedLessonContent && <PassageText className="course-passage" text={selectedLessonContent.text} lang={targetLanguageCode} direction={targetTextDirection} />}
+                    {selectedLessonContent && <ListeningTranscript
+                      text={selectedLessonContent.text}
+                      lang={targetLanguageCode}
+                      direction={targetTextDirection}
+                      unlocked={listenedPassages.has(passageKey(targetLanguageCode, selectedLessonContent.text))}
+                      visible={visibleTranscripts.has(passageKey(targetLanguageCode, selectedLessonContent.text))}
+                      onToggle={() => toggleTranscript(targetLanguageCode, selectedLessonContent.text)}
+                    />}
                   </article>
                   <article className="plan-comprehension">
                     <span className="eyebrow">READING · CHECK YOUR UNDERSTANDING</span>
@@ -1582,17 +1643,11 @@ function App() {
                       </div>}
                   </article>
                   <article className="speaking-practice">
-                    <span className="eyebrow">SPEAKING PRACTICE</span>
-                    <h3>Say it in {learningLanguage}</h3>
-                    <p>{selectedSupport?.speakingPrompt}</p>
-                    <div className="speaking-actions">
-                      {speechPracticeStatus === 'listening'
-                        ? <button className="primary-button" onClick={stopSpeakingPractice} aria-label="Stop recording">■ Stop recording</button>
-                        : <button className="primary-button" onClick={startSpeakingPractice}><span aria-hidden="true">🎙</span> Start speaking</button>}
-                      <span role="status" aria-live="polite">{speechPracticeStatus === 'listening' ? `Listening… speak your response in ${learningLanguage}.` : speechPracticeStatus === 'ready' ? 'Recording finished. You can try again.' : 'Your browser will ask for microphone access.'}</span>
+                    <span className="eyebrow">SPEAKING PRACTICE · NOT RECORDED</span>
+                    <h3>Try saying these aloud in {learningLanguage}</h3>
+                    <div className="speaking-prompt-grid">
+                      {speakingPromptCards.map((prompt, index) => <p key={`${index}-${prompt}`}><span>{index + 1}</span>{prompt}</p>)}
                     </div>
-                    {speechTranscript && <div className="speech-transcript"><strong>What we heard</strong><p lang={targetLanguageCode} dir={targetTextDirection}>{speechTranscript}</p><small>This transcript helps you review what was recognized; it does not score pronunciation.</small></div>}
-                    {speechError && <p className="speech-error" role="alert">{speechError}</p>}
                   </article>
                 </div>
               </div>
@@ -1601,6 +1656,16 @@ function App() {
                 <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review. CEFR levels include an approximate ILR reading reference.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
                 <p className="ilr-disclaimer">{ilrDisclaimer}</p>
                 <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${activeCoursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / activeCoursePlans.length * 100}%` }} /></div>
+                <section className="checkpoint-card">
+                  <div>
+                    <span className="eyebrow">PERIODIC CHECKPOINT</span>
+                    <h3>{nextAssessmentMilestone}-lesson assessment</h3>
+                    <p>Check your reading and listening after every five completed lessons. Assessment audio is limited to two listens with no transcript or rewind.</p>
+                  </div>
+                  {nextAssessmentMilestone <= completedLearnLessons.length
+                    ? <button className="primary-button" type="button" disabled={!readingAssessmentResource || !listeningAssessmentResource} onClick={() => startCourseAssessment(nextAssessmentMilestone)}>Start checkpoint →</button>
+                    : <span className="checkpoint-progress">{completedLearnLessons.length} / {nextAssessmentMilestone} lessons</span>}
+                </section>
                 {activeCourseLevels.map((courseLevel) => {
                   const levelLessons = activeCoursePlans.filter((plan) => plan.courseLevel === courseLevel)
                   const completedInLevel = levelLessons.filter((plan) => completedLearnLessons.includes(plan.id)).length
@@ -1649,7 +1714,14 @@ function App() {
                   <div className="reading-text">
                     <span className="reading-label">{selectedResource.type === 'video' ? 'ORIGINAL COMPANION TRANSCRIPT · NOT VERBATIM VIDEO CAPTIONS' : `${selectedResource.source} · ${selectedResource.tag}`}</span>
                     {selectedResource.passage && <AudioControl phrase={selectedResource.passage} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedResource.passage && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label={selectedResource.type === 'video' ? 'Listen to companion text' : 'Listen to passage'} />}
-                    {selectedResource.passage && <PassageText className="resource-passage" text={selectedResource.passage} lang={targetLanguageCode} direction={targetTextDirection} />}
+                    {selectedResource.passage && <ListeningTranscript
+                      text={selectedResource.passage}
+                      lang={targetLanguageCode}
+                      direction={targetTextDirection}
+                      unlocked={listenedPassages.has(passageKey(targetLanguageCode, selectedResource.passage))}
+                      visible={visibleTranscripts.has(passageKey(targetLanguageCode, selectedResource.passage))}
+                      onToggle={() => toggleTranscript(targetLanguageCode, selectedResource.passage!)}
+                    />}
                   </div>
                   <div className="comprehension">
                     <h3>Check your understanding</h3>
@@ -1803,7 +1875,10 @@ function App() {
         lang={targetLanguageCode}
         direction={targetTextDirection}
         paused={speechPlaybackStatus === 'paused'}
+        allowRewind={!assessmentAudioText || activeSpeechText !== assessmentAudioText}
+        canRewind={speechCharIndex > 0 && rewindSpeechIndex(activeSpeechText, speechCharIndex, activeSpeechLanguage) < speechCharIndex}
         onToggle={() => playActivityPhrase(activeSpeechText)}
+        onRewind={rewindAudioPlayback}
         onStop={stopAudioPlayback}
       />}
       {toast && <div className="toast" role="status">{toast}</div>}

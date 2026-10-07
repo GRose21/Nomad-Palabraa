@@ -7,9 +7,10 @@ type AudioControlProps = {
   isCurrent: boolean
   onActivate: (phrase: string) => void
   label?: string
+  disabled?: boolean
 }
 
-function AudioControl({ phrase, language, status, isCurrent, onActivate, label = 'Listen' }: AudioControlProps) {
+function AudioControl({ phrase, language, status, isCurrent, onActivate, label = 'Listen', disabled = false }: AudioControlProps) {
   const isPlaying = isCurrent && status === 'playing'
   const isPaused = isCurrent && status === 'paused'
   const action = isPlaying ? 'Pause' : isPaused ? 'Resume' : label
@@ -18,6 +19,7 @@ function AudioControl({ phrase, language, status, isCurrent, onActivate, label =
     <button
       className="audio-button"
       type="button"
+      disabled={disabled}
       onClick={() => onActivate(phrase)}
       aria-label={`${action} (${language})`}
       aria-pressed={isPlaying}

@@ -20,3 +20,13 @@ export function chooseSpeechVoice<T extends SpeechVoice>(voices: readonly T[], l
 export function speechRate(language: string) {
   return language.toLocaleLowerCase().startsWith('zh') ? 0.88 : 0.92
 }
+
+export function rewindSpeechIndex(text: string, currentIndex: number, language: string, seconds = 5) {
+  const languageBase = language.toLocaleLowerCase().split('-')[0]
+  const charactersPerSecond = languageBase === 'zh' ? 5 : languageBase === 'ar' ? 15 : 18
+  const targetIndex = Math.max(0, currentIndex - Math.round(charactersPerSecond * seconds))
+  const prefix = text.slice(0, targetIndex)
+  const boundary = [...' \n。！？；，、：,.!?;:؛،؟']
+    .reduce((latest, mark) => Math.max(latest, prefix.lastIndexOf(mark)), -1)
+  return boundary > 0 ? boundary + 1 : 0
+}

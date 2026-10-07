@@ -5,12 +5,14 @@ Nomad Palabra is a responsive React application for estimating a learner's CEFR 
 ## Features
 
 - An 18-question CEFR-style assessment
-- Progressive learning paths for all five languages from Pre-A1 (no prior knowledge) through C2, with ten lessons per CEFR level, vocabulary, grammar, level-scaled multi-paragraph readings, comprehension, listening, speaking, and saved lesson progress; Arabic lesson passages use Arabic text only
+- Progressive learning paths for all five languages from Pre-A1 (no prior knowledge) through C2, with ten lessons per CEFR level, vocabulary, grammar, level-scaled multi-paragraph readings, comprehension, listening, unrecorded speaking prompts, and saved lesson progress; Arabic lesson passages use Arabic text only
 - Grammar courses for all five languages from A1 foundations through C2 structures, with teaching examples and scored exercises
 - Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
 - CEFR-filtered video and reading resources with audio and comprehension checks; new-language video entries open level-matched YouTube results
 - Level-filtered practice activities with browser audio across Pre-A1–C2
 - Speech playback controls with pause, resume, and stop; playback prefers an installed enhanced voice when available, while voice quality still depends on the browser and operating system
+- Listening transcripts stay hidden until the full passage has played, then can be shown or hidden; regular playback includes an approximate five-second rewind based on browser speech-boundary events
+- Reading-and-listening Learn checkpoints unlock every five completed lessons; checkpoint audio is limited to two listens, with no transcript or rewind during the assessment
 - A dedicated DLPT-style reading practice area with longer passages and main-idea, detail, inference, purpose, and evidence questions across A1–C2
 - Approximate ILR reading references alongside CEFR levels; the crosswalk is explicitly a study guide, not a DLPT score estimate
 - An 18-question placement assessment for each language, spanning beginner through advanced
