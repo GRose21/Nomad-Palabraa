@@ -243,8 +243,9 @@ main { grid-column: 2; min-width: 0; }
 .resource-filters { display: grid; justify-items: end; gap: 7px; max-width: 100%; }
 .resource-filters .filters { max-width: 100%; flex-wrap: wrap; }
 .resource-filters .filters button { white-space: nowrap; }
-.resource-card { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: var(--card); transition: .25s; }
+.resource-card { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: var(--card); transition: .25s; cursor: pointer; }
 .resource-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.resource-card:focus-visible { outline: 3px solid rgba(239,127,98,.55); outline-offset: 3px; }
 .resource-art { height: 140px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--green), #387c72); font-size: 42px; position: relative; overflow: hidden; }
 .resource-art.video { background: linear-gradient(135deg, #c56d51, #ed9a79); }
 .resource-art.reading { background: linear-gradient(135deg, #756c99, #a69bc8); }
@@ -280,7 +281,9 @@ main { grid-column: 2; min-width: 0; }
 .comprehension div div { display: grid; gap: 7px; }
 .comprehension button { padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: #fafcf9; text-align: left; font-size: 10px; }
 .comprehension button.selected { color: var(--green); border-color: var(--green); background: var(--mint); }
-.score-message { grid-column: 1 / -1; margin: 0; padding: 12px 15px; border-radius: 10px; color: var(--green); background: var(--mint); font-size: 11px; font-weight: 700; }
+.comprehension button.correct { color: #176b40; border-color: #65b384; background: #e8f6ed; }
+.comprehension button.incorrect { color: #a84033; border-color: #e8b2a8; background: #fff3f0; }
+.score-message { grid-column: 1 / -1; margin: 0; padding: 12px 15px; border-radius: 10px; color: var(--green); background: var(--mint); font-size: 11px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .activity-layout { display: grid; grid-template-columns: minmax(0, 1fr) 275px; gap: 20px; }
 .practice-level-filter { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; margin: -8px 0 17px; }
 .activity-card { padding: 32px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
