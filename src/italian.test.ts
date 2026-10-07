@@ -13,6 +13,7 @@ import {
   italianSupplementalLessons,
 } from './italian.ts'
 import { italianCourseLevels } from './italian.ts'
+import { italianLevelVideoResources } from './resourceVideos.ts'
 
 test('provides Italian grammar lessons across the full CEFR range', () => {
   assert.deepEqual([...new Set(italianGrammarLessons.map((lesson) => lesson.level))], italianGrammarLevels)
@@ -30,22 +31,43 @@ test('provides complete Italian learning path material from Pre-A1 through C2', 
   assert.equal(italianStarters.length, 3)
   assert.equal(Object.keys(italianLessonSupport).length, 18)
   assert.equal(Object.keys(italianPlans).length, 6)
-  assert.equal(italianSupplementalLessons.length, 12)
+  assert.equal(italianSupplementalLessons.length, 42)
   assert.equal(italianCourseLevels.length, 7)
-  assert.equal(italianStarters.length + Object.keys(italianLessonSupport).length + italianSupplementalLessons.length, 33)
-  assert.equal(Object.keys(italianLessonContent).length, 33)
+  assert.equal(italianStarters.length + Object.keys(italianLessonSupport).length + italianSupplementalLessons.length, 63)
+  assert.equal(Object.keys(italianLessonContent).length, 63)
   for (const lesson of italianStarters) {
     assert.ok(lesson.vocabulary.length >= 4)
     assert.equal(lesson.questions.length, 2)
     assert.ok(lesson.passage)
   }
   for (const level of italianGrammarLevels) {
-    assert.equal(italianSupplementalLessons.filter((lesson) => lesson.level === level).length, 2)
+    assert.equal(italianSupplementalLessons.filter((lesson) => lesson.level === level).length, 7)
+    assert.equal(3 + italianSupplementalLessons.filter((lesson) => lesson.level === level).length, 10)
   }
   for (const [title, support] of Object.entries(italianLessonSupport)) {
     assert.ok(italianLessonContent[title], `${title} needs a reading`)
     assert.ok(support.vocabulary.length >= 4)
     assert.ok(italianGrammarLessons.some((lesson) => lesson.id === support.grammarLessonId))
+  }
+})
+
+test('scales the expanded Italian readings up in length from A1 through C2', () => {
+  const expanded = italianSupplementalLessons.filter((lesson) => lesson.id.startsWith('italian-expanded-'))
+  const minimumWordsByLevel = italianGrammarLevels.map((level) => {
+    const levelLessons = expanded.filter((lesson) => lesson.level === level)
+    assert.equal(levelLessons.length, 5, `${level} should have five new lessons`)
+    return Math.min(...levelLessons.map((lesson) => lesson.passage.trim().split(/\s+/).length))
+  })
+  for (let index = 1; index < minimumWordsByLevel.length; index += 1) {
+    assert.ok(minimumWordsByLevel[index] > minimumWordsByLevel[index - 1], 'each CEFR level should have longer reading material')
+  }
+})
+
+test('provides companion video resources and comprehension at every Italian CEFR level', () => {
+  for (const level of italianGrammarLevels) {
+    const videos = italianLevelVideoResources.filter((resource) => resource.level === level)
+    assert.ok(videos.length >= 1, `${level} needs a level-matched video resource`)
+    assert.ok(videos.every((video) => video.passage && video.comprehension?.length))
   }
 })
 

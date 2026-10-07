@@ -6,6 +6,8 @@ import { assessmentQuestions } from './assessment'
 import { activityCards } from './practice'
 import { getVocabulary } from './vocabulary'
 import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, italianGrammarLessons, italianGrammarLevels, italianLessonContent, italianLessonSupport, italianPlans, italianStarters, italianSupplementalLessons } from './italian'
+import { italianLevelVideoResources, spanishLevelVideoResources } from './resourceVideos'
+import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import { supabase } from './supabase'
@@ -14,19 +16,6 @@ import './App.css'
 
 type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'progress' | 'feedback'
 type FeedbackCategory = 'bug' | 'recommendation' | 'other'
-type Resource = {
-  type: 'video' | 'reading'
-  title: string
-  description: string
-  source: string
-  level: string
-  tag: string
-  url: string
-  embedUrl: string
-  passage?: string
-  comprehension?: Array<{ prompt: string; answers: string[]; correctIndex: number }>
-}
-
 type SpeechRecognitionAlternative = { transcript: string }
 type SpeechRecognitionResult = ArrayLike<SpeechRecognitionAlternative>
 type SpeechRecognitionEvent = { results: ArrayLike<SpeechRecognitionResult> }
@@ -72,6 +61,7 @@ const coreResources: Resource[] = [
 
 const resources: Resource[] = [
   ...coreResources,
+  ...spanishLevelVideoResources,
   ...starterLessons.map((lesson): Resource => ({
     type: 'reading',
     title: lesson.title,
@@ -895,6 +885,7 @@ function App() {
           { prompt: 'What can help learners notice natural rhythm?', answers: ['Skipping the conversation', 'Replaying and repeating a short response', 'Reading only the title', 'Turning off the audio'], correctIndex: 1 },
         ],
       },
+      ...italianLevelVideoResources,
       ...Object.entries(italianLessonContent).map(([title, content]) => ({
         type: 'reading' as const,
         title,
@@ -1509,7 +1500,7 @@ function App() {
                     {selectedResource.embedUrl
                       ? <div className="video-frame"><iframe src={selectedResource.embedUrl} title={selectedResource.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
                       : <p>This video resource opens on its publisher’s site.</p>}
-                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">Open original video ↗</a>
+                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">{selectedResource.embedUrl ? 'Open original video ↗' : `Browse ${selectedResource.source} videos ↗`}</a>
                   </>
                 )}
                 <div className="reading-panel">

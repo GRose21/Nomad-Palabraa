@@ -1,4 +1,7 @@
 import type { Level } from './learning'
+import { grammarLessons } from './grammar.ts'
+import { buildExpandedLessons } from './curriculumExpansion.ts'
+import { expandedSpanishSeeds } from './curriculumSpanish.ts'
 
 export type CourseLevel = 'Pre-A1' | Level
 export type CourseVocabulary = { spanish: string; english: string }
@@ -264,7 +267,7 @@ export const lessonSupport: Record<string, LessonSupport> = {
   },
 }
 
-export const supplementalLessons: SupplementalLesson[] = [
+const baseSupplementalLessons: SupplementalLesson[] = [
   {
     id: 'a1-at-the-market',
     level: 'A1',
@@ -457,4 +460,9 @@ export const supplementalLessons: SupplementalLesson[] = [
     speakingPrompt: 'Disagree tactfully with a proposal. Acknowledge one strength, state a reservation, and explain what remains unresolved.',
     listeningPrompt: 'Listen for where the speaker agrees, where they qualify that agreement, and which decisions are still pending.',
   },
+]
+
+export const supplementalLessons: SupplementalLesson[] = [
+  ...baseSupplementalLessons,
+  ...buildExpandedLessons('Spanish', expandedSpanishSeeds, grammarLessons),
 ]

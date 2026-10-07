@@ -1,6 +1,8 @@
 import type { AssessmentQuestion } from './assessment'
 import type { PracticeActivity } from './practice'
 import type { GrammarLesson } from './grammar'
+import { buildExpandedLessons } from './curriculumExpansion.ts'
+import { expandedItalianSeeds } from './curriculumItalian.ts'
 import type { CourseLevel, LessonSupport, StarterLesson, SupplementalLesson } from './learnCourse'
 
 export const italianGrammarLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
@@ -184,7 +186,7 @@ const passageTexts = [
   'La proposta è stata discussa a lungo: da una parte promette servizi più accessibili, dall’altra richiede investimenti continui. I dati iniziali sono incoraggianti, ma non bastano per valutare gli effetti a lungo termine.',
 ]
 
-export const italianSupplementalLessons: SupplementalLesson[] = italianGrammarLevels.flatMap((level, index) =>
+const baseItalianSupplementalLessons: SupplementalLesson[] = italianGrammarLevels.flatMap((level, index) =>
   [0, 1].map((variant) => {
     const passage = passageTexts[(index + variant) % passageTexts.length]
     const title = [
@@ -216,6 +218,11 @@ export const italianSupplementalLessons: SupplementalLesson[] = italianGrammarLe
     }
   }),
 )
+
+export const italianSupplementalLessons: SupplementalLesson[] = [
+  ...baseItalianSupplementalLessons,
+  ...buildExpandedLessons('Italian', expandedItalianSeeds, italianGrammarLessons),
+]
 
 export const italianLessonContent: Record<string, { label: string; text: string; questions: Array<{ prompt: string; options: string[]; answer: number }> }> = Object.fromEntries([
   ...italianStarters.map((lesson) => [lesson.title, { label: 'LETTURA · PRIMI PASSI', text: lesson.passage, questions: lesson.questions }]),
