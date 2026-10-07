@@ -9,7 +9,12 @@ export type VocabularyEntry = {
   level: CourseLevel
 }
 
-export function getVocabulary(lessons: GrammarLesson[] = grammarLessons): VocabularyEntry[] {
+export function getVocabulary(
+  lessons: GrammarLesson[] = grammarLessons,
+  starters = starterLessons,
+  supports: Record<string, typeof lessonSupport[string]> = lessonSupport,
+  supplements = supplementalLessons,
+): VocabularyEntry[] {
   const entries = new Map<string, VocabularyEntry>()
   const addEntry = (entry: VocabularyEntry) => {
     const key = `${entry.spanish.toLocaleLowerCase()}|${entry.english.toLocaleLowerCase()}`
@@ -31,7 +36,7 @@ export function getVocabulary(lessons: GrammarLesson[] = grammarLessons): Vocabu
     }
   }
 
-  for (const lesson of starterLessons) {
+  for (const lesson of starters) {
     for (const word of lesson.vocabulary) {
       addEntry({ ...word, lessonId: `pre-a1-${lesson.title}`, lessonTitle: lesson.title, level: 'Pre-A1' })
     }
@@ -57,7 +62,7 @@ export function getVocabulary(lessons: GrammarLesson[] = grammarLessons): Vocabu
     'Read at native pace': 'C2',
     'Speak with precision': 'C2',
   }
-  for (const [lessonTitle, support] of Object.entries(lessonSupport)) {
+  for (const [lessonTitle, support] of Object.entries(supports)) {
     const level = lessonLevels[lessonTitle]
     if (!level) continue
     for (const word of support.vocabulary) {
@@ -65,7 +70,7 @@ export function getVocabulary(lessons: GrammarLesson[] = grammarLessons): Vocabu
     }
   }
 
-  for (const lesson of supplementalLessons) {
+  for (const lesson of supplements) {
     for (const word of lesson.vocabulary) {
       addEntry({ ...word, lessonId: lesson.id, lessonTitle: lesson.title, level: lesson.level })
     }

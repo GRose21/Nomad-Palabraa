@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { getActivityScore, getDailyMinutes, getLevelFromScore, getStreak, getWeekDays, type Level } from './learning'
-import { grammarLessons } from './grammar'
+import { grammarLessons, grammarLevels } from './grammar'
 import { courseLevelInfo, courseLevels, lessonSupport, starterLessons, supplementalLessons, type CourseLevel, type LessonSupport } from './learnCourse'
 import { assessmentQuestions } from './assessment'
 import { activityCards } from './practice'
 import { getVocabulary } from './vocabulary'
+import { italianActivityCards, italianAssessmentQuestions, italianCourseLevels, italianGrammarLessons, italianGrammarLevels, italianLessonContent, italianLessonSupport, italianPlans, italianStarters, italianSupplementalLessons } from './italian'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import { supabase } from './supabase'
@@ -385,25 +386,11 @@ const coursePlans: CoursePlan[] = [
     ]),
 ]
 
-const coursePlanIds = new Set(coursePlans.map((plan) => plan.id))
-const totalVocabulary = getVocabulary().length
 const supplementalLessonContent = Object.fromEntries(supplementalLessons.map((lesson) => [
   lesson.title,
   { label: lesson.label, text: lesson.passage, questions: lesson.questions },
 ])) as Record<string, LessonContent>
 const allLessonContent = { ...lessonContent, ...supplementalLessonContent }
-const supplementalLessonSupport = Object.fromEntries(supplementalLessons.map((lesson) => [
-  lesson.title,
-  {
-    objective: lesson.objective,
-    vocabulary: lesson.vocabulary,
-    grammarLessonId: lesson.grammarLessonId,
-    grammarNote: lesson.grammarNote,
-    speakingPrompt: lesson.speakingPrompt,
-    listeningPrompt: lesson.listeningPrompt,
-  },
-])) as Record<string, LessonSupport>
-
 const todayKey = () => {
   const today = new Date()
   const year = today.getFullYear()
@@ -413,10 +400,55 @@ const todayKey = () => {
 }
 
 function App() {
+  const [learningLanguage, setLearningLanguage] = useState<'Spanish' | 'Italian'>(() => {
+    try {
+      return localStorage.getItem('learning-language') === 'Italian' ? 'Italian' : 'Spanish'
+    } catch {
+      return 'Spanish'
+    }
+  })
+  const isItalian = learningLanguage === 'Italian'
+  const activeGrammarLessons = isItalian ? italianGrammarLessons : grammarLessons
+  const activeGrammarLevels = isItalian ? italianGrammarLevels : grammarLevels
+  const activeCourseLevels = isItalian ? italianCourseLevels : courseLevels
+  const activeStarterLessons = isItalian ? italianStarters : starterLessons
+  const activeSupplementalLessons = isItalian ? italianSupplementalLessons : supplementalLessons
+  const activeLessonSupport = isItalian ? italianLessonSupport : lessonSupport
+  const activeAssessmentQuestions = isItalian ? italianAssessmentQuestions : assessmentQuestions
+  const activeActivityCards = isItalian ? italianActivityCards : activityCards
+  const activePlans = isItalian ? italianPlans : plans
+  const activeLessonContent = isItalian ? italianLessonContent : allLessonContent
+  const activeCoursePlans: CoursePlan[] = useMemo(() => isItalian ? [
+      ...italianStarters.map((lesson, index) => ({
+        id: `pre-a1-${index + 1}`, courseLevel: 'Pre-A1' as const, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
+      })),
+      ...italianCourseLevels.filter((courseLevel): courseLevel is Level => courseLevel !== 'Pre-A1')
+        .flatMap((courseLevel) => [
+          ...activePlans[courseLevel].map((lesson, index) => ({
+            id: `${courseLevel.toLowerCase()}-${index + 1}`, courseLevel, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
+          })),
+          ...italianSupplementalLessons.filter((lesson) => lesson.level === courseLevel).map((lesson) => ({
+            id: lesson.id, courseLevel, title: lesson.title, detail: lesson.detail, minutes: lesson.minutes,
+          })),
+        ]),
+    ] : coursePlans, [isItalian, activePlans])
+  const currentGrammarLessonIds = useMemo(() => new Set(activeGrammarLessons.map((lesson) => lesson.id)), [activeGrammarLessons])
+  const activeSupplementalLessonSupport = useMemo(() => Object.fromEntries(activeSupplementalLessons.map((lesson) => [
+    lesson.title,
+    {
+      objective: lesson.objective,
+      vocabulary: lesson.vocabulary,
+      grammarLessonId: lesson.grammarLessonId,
+      grammarNote: lesson.grammarNote,
+      speakingPrompt: lesson.speakingPrompt,
+      listeningPrompt: lesson.listeningPrompt,
+    },
+  ])) as Record<string, LessonSupport>, [activeSupplementalLessons])
+  const activeVocabulary = useMemo(() => getVocabulary(activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons), [activeGrammarLessons, activeStarterLessons, activeLessonSupport, activeSupplementalLessons])
   const [user, setUser] = useState<User | null>(null)
   const userId = user?.id ?? null
   const [authReady, setAuthReady] = useState(!supabase)
-  const [loadedProgressOwner, setLoadedProgressOwner] = useState<string | null>(supabase ? null : 'local')
+  const [loadedProgressOwner, setLoadedProgressOwner] = useState<string | null>(null)
   const [cloudWritableOwner, setCloudWritableOwner] = useState<string | null>(null)
   const [cloudStatus, setCloudStatus] = useState<'local' | 'loading' | 'saving' | 'saved' | 'error'>(supabase ? 'loading' : 'local')
   const [cloudError, setCloudError] = useState('')
@@ -428,8 +460,8 @@ function App() {
   const [accountMessage, setAccountMessage] = useState('')
   const [accountBusy, setAccountBusy] = useState(false)
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const accountStorageKey = userId ? `lingua-state:${userId}` : 'lingua-state'
-  const [storedState] = useState(() => readStoredState())
+  const accountStorageKey = userId ? `lingua-state:${userId}:${learningLanguage.toLocaleLowerCase()}` : `lingua-state:${learningLanguage.toLocaleLowerCase()}`
+  const [storedState] = useState(() => readStoredState(accountStorageKey))
   const currentDate = todayKey()
   const initialDailyState = getDailyMinutes({
     minutes: typeof storedState.minutes === 'number' && Number.isFinite(storedState.minutes) && storedState.minutes >= 0
@@ -451,14 +483,14 @@ function App() {
     : 3
   const initialCompletedActivities = Array.isArray(storedState.completedActivities)
     ? [...new Set(storedState.completedActivities.filter((index: unknown): index is number =>
-      typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < activityCards.length,
+      typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < activeActivityCards.length,
     ))]
     : []
   const initialCompletedGrammarLessons = Array.isArray(storedState.completedGrammarLessons)
-    ? storedState.completedGrammarLessons.filter((id: unknown): id is string => typeof id === 'string' && grammarLessons.some((lesson) => lesson.id === id))
+    ? storedState.completedGrammarLessons.filter((id: unknown): id is string => typeof id === 'string' && currentGrammarLessonIds.has(id))
     : []
   const initialCompletedLearnLessons = Array.isArray(storedState.completedLearnLessons)
-    ? storedState.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && coursePlanIds.has(id))
+    ? storedState.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && activeCoursePlans.some((plan) => plan.id === id))
     : []
   const [page, setPage] = useState<Page>('dashboard')
   const [level, setLevel] = useState<Level | null>(() =>
@@ -471,7 +503,7 @@ function App() {
     typeof storedState.score === 'number'
       && Number.isInteger(storedState.score)
       && storedState.score >= 0
-      && storedState.score <= assessmentQuestions.length
+      && storedState.score <= activeAssessmentQuestions.length
       ? storedState.score
       : 0,
   )
@@ -519,11 +551,11 @@ function App() {
     }, currentDate)
     setMinutes(dailyState.minutes)
     setLastActivityDate(dailyState.lastActivityDate)
-    setScore(typeof state.score === 'number' && Number.isInteger(state.score) && state.score >= 0 && state.score <= assessmentQuestions.length ? state.score : 0)
+    setScore(typeof state.score === 'number' && Number.isInteger(state.score) && state.score >= 0 && state.score <= activeAssessmentQuestions.length ? state.score : 0)
     setAssessmentCompleted(state.assessmentCompleted === true)
     setDarkMode(state.darkMode === true)
     setCompletedActivities(Array.isArray(state.completedActivities)
-      ? [...new Set(state.completedActivities.filter((index: unknown): index is number => typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < activityCards.length))]
+      ? [...new Set(state.completedActivities.filter((index: unknown): index is number => typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < activeActivityCards.length))]
       : [])
     setDailyActivityGoal(typeof state.dailyActivityGoal === 'number' && Number.isInteger(state.dailyActivityGoal) && state.dailyActivityGoal >= 1 && state.dailyActivityGoal <= 20 ? state.dailyActivityGoal : 3)
     setDailyCompletedItems(state.dailyActivityDate === currentDate && Array.isArray(state.dailyCompletedItems)
@@ -534,12 +566,12 @@ function App() {
       ? [...new Set(state.activeDates.filter(isDateKey))]
       : [])
     setCompletedGrammarLessons(Array.isArray(state.completedGrammarLessons)
-      ? [...new Set(state.completedGrammarLessons.filter((id: unknown): id is string => typeof id === 'string' && grammarLessons.some((lesson) => lesson.id === id)))]
+      ? [...new Set(state.completedGrammarLessons.filter((id: unknown): id is string => typeof id === 'string' && currentGrammarLessonIds.has(id)))]
       : [])
     setCompletedLearnLessons(Array.isArray(state.completedLearnLessons)
-      ? [...new Set(state.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && coursePlanIds.has(id)))]
+      ? [...new Set(state.completedLearnLessons.filter((id: unknown): id is string => typeof id === 'string' && activeCoursePlans.some((plan) => plan.id === id)))]
       : [])
-  }, [currentDate])
+  }, [currentDate, activeAssessmentQuestions.length, activeActivityCards.length, currentGrammarLessonIds, activeCoursePlans])
 
   useEffect(() => {
     if (!supabase) return
@@ -633,16 +665,28 @@ function App() {
     let active = true
 
     const client = supabase
+    const progressOwner = `${userId ?? 'signed-out'}:${learningLanguage}`
     if (!client || !userId) {
+      const localProgress = readStoredState(accountStorageKey)
+      const legacyProgress = learningLanguage === 'Spanish' && !hasProgress(localProgress) ? readStoredState() : localProgress
       if (client) {
         // oxlint-disable-next-line react/set-state-in-effect -- Restore the signed-out user's browser progress after an auth change.
-        applyProgressState(readStoredState())
+        applyProgressState(legacyProgress)
       }
-      setLoadedProgressOwner(userId ?? 'signed-out')
+      else applyProgressState(legacyProgress)
+      if (learningLanguage === 'Spanish' && hasProgress(legacyProgress) && !hasProgress(localProgress)) {
+        try {
+          localStorage.setItem(accountStorageKey, JSON.stringify(legacyProgress))
+        } catch (error) {
+          setCloudError(error instanceof Error ? `Could not migrate your saved progress: ${error.message}` : 'Could not migrate your saved progress.')
+          setCloudStatus('error')
+        }
+      }
+      setLoadedProgressOwner(progressOwner)
       return () => { active = false }
     }
 
-    const storageKey = `lingua-state:${userId}`
+    const storageKey = accountStorageKey
     const restoreProgress = async () => {
       const { data, error } = await client
         .from('user_progress')
@@ -653,21 +697,32 @@ function App() {
       if (error) {
         setCloudError(`Could not load your cloud progress: ${error.message}`)
         setCloudStatus('error')
-        setLoadedProgressOwner(userId)
+        setLoadedProgressOwner(progressOwner)
         return
       }
 
-      if (data) {
-        if (!isStoredState(data.progress)) {
-          setCloudError('Your saved cloud progress is invalid. Local progress was left unchanged.')
-          setCloudStatus('error')
-          setLoadedProgressOwner(userId)
-          return
-        }
-        applyProgressState(data.progress)
+      if (data && !isStoredState(data.progress)) {
+        setCloudError('Your saved cloud progress is invalid. Local progress was left unchanged.')
+        setCloudStatus('error')
+        setLoadedProgressOwner(progressOwner)
+        return
+      }
+      const remote = data && isStoredState(data.progress) ? data.progress : {}
+      const cloudLanguages = isStoredState(remote.languages)
+        ? remote.languages
+        : hasProgress(remote) ? { Spanish: remote } : {}
+      const selectedCloudProgress = cloudLanguages[learningLanguage]
+      if (selectedCloudProgress !== undefined && !isStoredState(selectedCloudProgress)) {
+        setCloudError('Your saved cloud progress is invalid. Local progress was left unchanged.')
+        setCloudStatus('error')
+        setLoadedProgressOwner(progressOwner)
+        return
+      }
+      if (selectedCloudProgress && hasProgress(selectedCloudProgress)) {
+        applyProgressState(selectedCloudProgress)
         let localCacheFailed = false
         try {
-          localStorage.setItem(storageKey, JSON.stringify(data.progress))
+          localStorage.setItem(storageKey, JSON.stringify(selectedCloudProgress))
         } catch (error) {
           localCacheFailed = true
           setCloudError(error instanceof Error ? `Could not cache your progress locally: ${error.message}` : 'Could not cache your progress locally.')
@@ -675,24 +730,24 @@ function App() {
         }
         setCloudWritableOwner(userId)
         if (!localCacheFailed) setCloudStatus('saved')
-        setLoadedProgressOwner(userId)
+        setLoadedProgressOwner(progressOwner)
         return
       }
 
       const localAccountProgress = readStoredState(storageKey)
-      const legacyProgress = readStoredState()
+      const legacyProgress = learningLanguage === 'Spanish' ? readStoredState() : {}
       let initialProgress: Record<string, unknown>
       try {
         const alreadyMigrated = localStorage.getItem('lingua-local-progress-migrated') === 'true'
         initialProgress = hasProgress(localAccountProgress)
           ? localAccountProgress
-          : !alreadyMigrated && hasProgress(legacyProgress)
+          : learningLanguage === 'Spanish' && !alreadyMigrated && hasProgress(legacyProgress)
             ? legacyProgress
             : {}
       } catch (error) {
         setCloudError(error instanceof Error ? `Could not read local progress: ${error.message}` : 'Could not read local progress.')
         setCloudStatus('error')
-        setLoadedProgressOwner(userId)
+        setLoadedProgressOwner(progressOwner)
         return
       }
 
@@ -714,14 +769,21 @@ function App() {
         }
       }
       applyProgressState(initialProgress)
+      const storedLanguages = isStoredState(remote.languages)
+        ? remote.languages
+        : hasProgress(remote) ? { Spanish: remote } : {}
       const { error: saveError } = await client
         .from('user_progress')
-        .upsert({ user_id: userId, progress: initialProgress, updated_at: new Date().toISOString() })
+        .upsert({
+          user_id: userId,
+          progress: { languages: { ...storedLanguages, [learningLanguage]: initialProgress } },
+          updated_at: new Date().toISOString(),
+        })
       if (!active) return
       if (saveError) {
         setCloudError(`Could not create your cloud progress record: ${saveError.message}`)
         setCloudStatus('error')
-        setLoadedProgressOwner(userId)
+        setLoadedProgressOwner(progressOwner)
         return
       }
       try {
@@ -733,20 +795,20 @@ function App() {
       }
       setCloudWritableOwner(userId)
       setCloudStatus('saved')
-      setLoadedProgressOwner(userId)
+      setLoadedProgressOwner(progressOwner)
     }
 
     void restoreProgress().catch((error: unknown) => {
       if (!active) return
       setCloudError(error instanceof Error ? `Could not load your cloud progress: ${error.message}` : 'Could not load your cloud progress.')
       setCloudStatus('error')
-      setLoadedProgressOwner(userId)
+      setLoadedProgressOwner(progressOwner)
     })
     return () => { active = false }
-  }, [authReady, userId, applyProgressState, currentDate])
+  }, [authReady, userId, learningLanguage, accountStorageKey, applyProgressState, currentDate])
 
   useEffect(() => {
-    const expectedOwner = userId ?? 'signed-out'
+    const expectedOwner = `${userId ?? 'signed-out'}:${learningLanguage}`
     if (!authReady || loadedProgressOwner !== expectedOwner) return
 
     const progress = {
@@ -769,9 +831,23 @@ function App() {
       // oxlint-disable-next-line react/set-state-in-effect -- Show the pending debounced cloud write in the sync UI.
       setCloudStatus('saving')
       saveQueueRef.current = saveQueueRef.current.then(async () => {
+        const { data, error: readError } = await client
+          .from('user_progress')
+          .select('progress')
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (readError) throw readError
+        const remote = data && isStoredState(data.progress) ? data.progress : {}
+        const languages = isStoredState(remote.languages)
+          ? remote.languages
+          : hasProgress(remote) ? { Spanish: remote } : {}
         const { error } = await client
           .from('user_progress')
-          .upsert({ user_id: userId, progress, updated_at: new Date().toISOString() })
+          .upsert({
+            user_id: userId,
+            progress: { languages: { ...languages, [learningLanguage]: progress } },
+            updated_at: new Date().toISOString(),
+          })
         if (error) throw error
       }).then(() => {
         setCloudStatus('saved')
@@ -782,7 +858,7 @@ function App() {
       })
     }, 700)
     return () => window.clearTimeout(timeout)
-  }, [level, minutes, score, assessmentCompleted, darkMode, lastActivityDate, completedActivities, dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons, authReady, loadedProgressOwner, accountStorageKey, userId, cloudWritableOwner])
+  }, [level, minutes, score, assessmentCompleted, darkMode, lastActivityDate, completedActivities, dailyActivityGoal, dailyCompletedItems, dailyActivityDate, activeDates, completedGrammarLessons, completedLearnLessons, authReady, loadedProgressOwner, accountStorageKey, userId, cloudWritableOwner, learningLanguage])
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light'
@@ -794,33 +870,62 @@ function App() {
 
   const currentLevel = level ? levelData[level] : null
   const learningStreak = getStreak(activeDates, currentDate)
+  const activeResources: Resource[] = useMemo(() => isItalian
+    ? [
+      {
+        type: 'video' as const,
+        title: 'Listen to real Italian conversations',
+        description: 'Explore beginner-friendly conversations and street interviews from Easy Italian.',
+        source: 'Easy Italian',
+        level: 'A1',
+        tag: 'Video channel',
+        url: 'https://www.youtube.com/@EasyItalian',
+        embedUrl: '',
+      },
+      ...Object.entries(italianLessonContent).map(([title, content]) => ({
+        type: 'reading' as const,
+        title,
+        description: `Italian reading and comprehension practice: ${title}.`,
+        source: 'Nomad Palabra Italian course',
+        level: activeCoursePlans.find((plan) => plan.title === title)?.courseLevel ?? 'A1',
+        tag: 'Graded reading',
+        url: '',
+        embedUrl: '',
+        passage: content.text,
+        comprehension: content.questions.map((question) => ({
+          prompt: question.prompt, answers: question.options, correctIndex: question.answer,
+        })),
+      })),
+    ]
+    : resources, [isItalian, activeCoursePlans])
+  const resourceTypeFilters = ['all', 'video', 'reading'] as const
   const visibleResources = useMemo(
-    () => resources.filter((resource) => {
+    () => activeResources.filter((resource) => {
       const matchesType = resourceFilter === 'all' || resource.type === resourceFilter
       const matchesLevel = resourceLevelFilter === 'all'
         || resource.level === resourceLevelFilter
         || resource.level.split(/[–\-\s]+/).includes(resourceLevelFilter)
       return matchesType && matchesLevel
     }),
-    [resourceFilter, resourceLevelFilter],
+    [resourceFilter, resourceLevelFilter, activeResources],
   )
-  const visibleActivityIndices = activityCards
+  const visibleActivityIndices = activeActivityCards
     .map((activity, index) => ({ activity, index }))
     .filter(({ activity }) => activityLevelFilter === 'all' || activity.level === activityLevelFilter)
     .map(({ index }) => index)
   const activityPosition = visibleActivityIndices.indexOf(activityIndex)
-  const nextLearnLesson = coursePlans.find((plan) => !completedLearnLessons.includes(plan.id))
-  const learnCompletion = completedLearnLessons.length / coursePlans.length * 100
-  const recentlyCompletedLessons = completedLearnLessons.slice(-3).reverse().map((id) => coursePlans.find((plan) => plan.id === id)).filter((plan): plan is CoursePlan => Boolean(plan))
-  const recentlyCompletedGrammar = completedGrammarLessons.slice(-3).reverse().map((id) => grammarLessons.find((lesson) => lesson.id === id)).filter((lesson) => lesson !== undefined)
-  const recentlyCompletedActivities = completedActivities.slice(-3).reverse().map((index) => activityCards[index]).filter((activity) => activity !== undefined)
+  const nextLearnLesson = activeCoursePlans.find((plan) => !completedLearnLessons.includes(plan.id))
+  const learnCompletion = completedLearnLessons.length / activeCoursePlans.length * 100
+  const recentlyCompletedLessons = completedLearnLessons.slice(-3).reverse().map((id) => activeCoursePlans.find((plan) => plan.id === id)).filter((plan): plan is CoursePlan => Boolean(plan))
+  const recentlyCompletedGrammar = completedGrammarLessons.slice(-3).reverse().map((id) => activeGrammarLessons.find((lesson) => lesson.id === id)).filter((lesson) => lesson !== undefined)
+  const recentlyCompletedActivities = completedActivities.slice(-3).reverse().map((index) => activeActivityCards[index]).filter((activity) => activity !== undefined)
   const recentActivity = [
     ...recentlyCompletedLessons.map((plan) => ({ title: plan.title, detail: `${plan.courseLevel} learning-path lesson` })),
     ...recentlyCompletedGrammar.map((lesson) => ({ title: lesson.title, detail: `${lesson.level} grammar lesson` })),
     ...recentlyCompletedActivities.map((activity) => ({ title: activity.title, detail: `${activity.level} practice activity` })),
   ].slice(0, 5)
   const selectedStarter = selectedPlan?.courseLevel === 'Pre-A1'
-    ? starterLessons.find((lesson) => lesson.title === selectedPlan.title)
+    ? activeStarterLessons.find((lesson) => lesson.title === selectedPlan.title)
     : undefined
   const selectedSupport: LessonSupport | undefined = selectedStarter
     ? {
@@ -831,11 +936,11 @@ function App() {
       speakingPrompt: selectedStarter.speakingPrompt,
       listeningPrompt: selectedStarter.listeningPrompt,
     }
-    : selectedPlan ? lessonSupport[selectedPlan.title] ?? supplementalLessonSupport[selectedPlan.title] : undefined
+    : selectedPlan ? activeLessonSupport[selectedPlan.title] ?? activeSupplementalLessonSupport[selectedPlan.title] : undefined
   const selectedGrammarLesson = selectedSupport?.grammarLessonId
-    ? grammarLessons.find((lesson) => lesson.id === selectedSupport.grammarLessonId)
+    ? activeGrammarLessons.find((lesson) => lesson.id === selectedSupport.grammarLessonId)
     : undefined
-  const selectedLessonContent = selectedPlan ? allLessonContent[selectedPlan.title] : undefined
+  const selectedLessonContent = selectedPlan ? activeLessonContent[selectedPlan.title] : undefined
 
   const showToast = (message: string) => {
     setToast(message)
@@ -868,12 +973,12 @@ function App() {
   }
 
   const nextQuestion = () => {
-    if (questionIndex < assessmentQuestions.length - 1) {
+    if (questionIndex < activeAssessmentQuestions.length - 1) {
       const nextIndex = questionIndex + 1
       setQuestionIndex(nextIndex)
       setSelectedAnswer(answers[nextIndex] ?? null)
     } else {
-      const result = answers.reduce((total, answer, index) => total + (answer === assessmentQuestions[index].correctIndex ? 1 : 0), 0)
+      const result = answers.reduce((total, answer, index) => total + (answer === activeAssessmentQuestions[index].correctIndex ? 1 : 0), 0)
       const estimatedLevel = getLevelFromScore(result)
       setScore(result)
       setLevel(estimatedLevel)
@@ -883,12 +988,12 @@ function App() {
   }
 
   const finishAssessment = () => {
-    const result = getActivityScore(answers, assessmentQuestions.map((question) => question.correctIndex))
+    const result = getActivityScore(answers, activeAssessmentQuestions.map((question) => question.correctIndex))
     setScore(result)
     const estimatedLevel = getLevelFromScore(result)
     setLevel(estimatedLevel)
     setAssessmentCompleted(true)
-    setQuestionIndex(assessmentQuestions.length)
+    setQuestionIndex(activeAssessmentQuestions.length)
   }
 
   const openResource = (resource: Resource) => {
@@ -924,7 +1029,7 @@ function App() {
     }
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(phrase)
-    utterance.lang = 'es-ES'
+    utterance.lang = isItalian ? 'it-IT' : 'es-ES'
     utterance.rate = 0.85
     window.speechSynthesis.speak(utterance)
   }
@@ -943,7 +1048,7 @@ function App() {
     setSpeechPracticeStatus('listening')
 
     const recognition = new Recognition()
-    recognition.lang = 'es-ES'
+    recognition.lang = isItalian ? 'it-IT' : 'es-ES'
     recognition.continuous = false
     recognition.interimResults = false
     recognition.onresult = (event) => {
@@ -998,7 +1103,7 @@ function App() {
 
   const completeActivity = () => {
     if (activityAnswer === null) return
-    if (activityAnswer !== activityCards[activityIndex].answer) {
+    if (activityAnswer !== activeActivityCards[activityIndex].answer) {
       setActivityFeedback('Not quite. Listen again, review the options, and try once more.')
       return
     }
@@ -1050,7 +1155,7 @@ function App() {
   const checkPlanAnswers = () => {
     if (!selectedPlan) return
     setPlanAnswersChecked(true)
-    const content = allLessonContent[selectedPlan.title]
+    const content = activeLessonContent[selectedPlan.title]
     const score = content.questions.filter((question, index) => planAnswers[index] === question.answer).length
     if (score === content.questions.length) {
       setCompletedLearnLessons((current) => current.includes(selectedPlan.id) ? current : [...current, selectedPlan.id])
@@ -1079,10 +1184,49 @@ function App() {
     recordDailyActivity(`grammar-${lessonId}`)
   }
 
-  const currentQuestion = assessmentQuestions[questionIndex]
-  const progress = Math.min(100, ((questionIndex + 1) / assessmentQuestions.length) * 100)
+  const changeLearningLanguage = (language: 'Spanish' | 'Italian') => {
+    if (language === learningLanguage) return
+    setLoadedProgressOwner(null)
+    try {
+      localStorage.setItem('learning-language', language)
+    } catch (error) {
+      setCloudError(error instanceof Error ? `Could not save your language choice: ${error.message}` : 'Could not save your language choice.')
+    }
+    speechRecognitionRef.current?.stop()
+    speechRecognitionRef.current = null
+    setLearningLanguage(language)
+    setPage('dashboard')
+    setSelectedPlan(null)
+    setSelectedResource(null)
+    setQuestionIndex(0)
+    setAnswers([])
+    setSelectedAnswer(null)
+    setResourceFilter('all')
+    setResourceLevelFilter('all')
+    setPassageAnswers([])
+    setPassageChecked(false)
+    setActivityIndex(0)
+    setActivityLevelFilter('all')
+    setActivityAnswer(null)
+    setActivityFeedback('')
+    setSpeechPracticeStatus('idle')
+    setSpeechTranscript('')
+    setSpeechError('')
+    setGrammarTabKey((key) => key + 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
-  if (supabase && (!authReady || loadedProgressOwner !== (userId ?? 'signed-out'))) {
+  const currentQuestion = activeAssessmentQuestions[questionIndex]
+  const progress = Math.min(100, ((questionIndex + 1) / activeAssessmentQuestions.length) * 100)
+  const currentPageTitle = page === 'learn'
+    ? `Learn ${learningLanguage}`
+    : page === 'grammar'
+      ? `${learningLanguage} grammar`
+      : page === 'vocabulary'
+        ? `${learningLanguage} vocabulary`
+        : pageTitles[page]
+
+  if (supabase && (!authReady || loadedProgressOwner !== `${userId ?? 'signed-out'}:${learningLanguage}`)) {
     return <main className="auth-loading" role="status"><span className="brand-mark">N</span><strong>{userId ? 'Loading your saved progress…' : 'Starting Nomad Palabra…'}</strong></main>
   }
 
@@ -1119,8 +1263,12 @@ function App() {
       <main>
         <header className="topbar">
           <button className="menu-button" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}>☰</button>
-          <div><span className="eyebrow">SPANISH · CEFR</span><h1>{pageTitles[page]}</h1></div>
+          <div><span className="eyebrow">{learningLanguage.toLocaleUpperCase()} · CEFR</span><h1>{currentPageTitle}</h1></div>
           <div className="top-actions">
+            <label className="language-select"><span>Learning</span><select value={learningLanguage} onChange={(event) => changeLearningLanguage(event.target.value === 'Italian' ? 'Italian' : 'Spanish')} aria-label="Choose learning language">
+              <option value="Spanish">Spanish</option>
+              <option value="Italian">Italian</option>
+            </select></label>
             {user && supabase && <button className={`sync-indicator ${cloudStatus === 'error' ? 'error' : ''}`} onClick={() => { setAccountError(''); setAccountMessage(''); setAccountOpen(true) }} aria-label={cloudStatus === 'error' ? 'Cloud sync problem. Open account details' : `Cloud sync ${cloudStatus}. Open account details`}>
               {cloudStatus === 'saving' ? 'Saving…' : cloudStatus === 'loading' ? 'Loading…' : cloudStatus === 'error' ? 'Sync issue' : 'Saved'}
             </button>}
@@ -1132,12 +1280,12 @@ function App() {
           <div className="content">
             <section className="hero-card">
               <div className="hero-copy">
-                <span className="eyebrow light">YOUR SPANISH JOURNEY</span>
+                <span className="eyebrow light">YOUR {learningLanguage.toLocaleUpperCase()} JOURNEY</span>
                 <h2>Small steps.<br /><em>Fluent confidence.</em></h2>
-                <p>Build your Spanish through short assessments, meaningful media, and reading practice tuned to your CEFR level.</p>
+                <p>Build your {learningLanguage} through short assessments, meaningful media, and reading practice tuned to your CEFR level.</p>
                 <div className="hero-actions"><button className="white-button" onClick={startAssessment}>Take a quick test →</button><button className="text-button" onClick={() => navigate('resources')}>Explore resources</button></div>
               </div>
-              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>es</span><small>ESPANOL</small></div><b className="floating-badge one">{level ?? '?'}</b><b className="floating-badge two">✓</b></div>
+              <div className="hero-art" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><div className="language-card"><span>{isItalian ? 'it' : 'es'}</span><small>{learningLanguage.toLocaleUpperCase()}</small></div><b className="floating-badge one">{level ?? '?'}</b><b className="floating-badge two">✓</b></div>
             </section>
 
             <section className="dashboard-grid">
@@ -1160,8 +1308,8 @@ function App() {
                 <div className="card-title"><div><span className="eyebrow">YOUR LEARNING LIBRARY</span><h3>Pick up where you left off</h3></div><span className="focus-icon">◉</span></div>
                 {[
                   ['01', 'Continue your course', nextLearnLesson ? `${nextLearnLesson.courseLevel} · ${nextLearnLesson.title}` : 'All course lessons complete'],
-                  ['02', 'Explore grammar', `${completedGrammarLessons.length} of ${grammarLessons.length} lessons complete`],
-                  ['03', 'Review vocabulary', `${totalVocabulary} phrases across Pre-A1–C2`],
+                  ['02', 'Explore grammar', `${completedGrammarLessons.length} of ${activeGrammarLessons.length} lessons complete`],
+                  ['03', 'Review vocabulary', `${activeVocabulary.length} phrases across Pre-A1–C2`],
                 ].map(([number, title, detail], index) => <button className="focus-row" key={number} onClick={() => {
                   if (index === 0 && nextLearnLesson) startPlan(nextLearnLesson)
                   else navigate(index === 1 ? 'grammar' : index === 2 ? 'vocabulary' : 'learn')
@@ -1173,22 +1321,22 @@ function App() {
 
         {page === 'assessment' && (
           <div className="content">
-            <div className="section-heading"><div><span className="eyebrow">CEFR ASSESSMENT</span><h2>Find your starting point</h2><p>Answer {assessmentQuestions.length} questions across vocabulary, grammar, and comprehension. Your results guide your study plan.</p></div><span className="question-count">{questionIndex < assessmentQuestions.length ? `Question ${questionIndex + 1} of ${assessmentQuestions.length}` : 'Assessment complete'}</span></div>
+            <div className="section-heading"><div><span className="eyebrow">CEFR ASSESSMENT</span><h2>Find your starting point</h2><p>Answer {activeAssessmentQuestions.length} questions across vocabulary, grammar, and comprehension. Your results guide your study plan.</p></div><span className="question-count">{questionIndex < activeAssessmentQuestions.length ? `Question ${questionIndex + 1} of ${activeAssessmentQuestions.length}` : 'Assessment complete'}</span></div>
             <div className="quiz-card">
               <div className="quiz-meta"><span>LEVEL CHECK</span><span>{Math.round(progress)}%</span></div>
               <div className="quiz-progress"><span style={{ width: `${progress}%` }} /></div>
-              {questionIndex < assessmentQuestions.length ? (
+              {questionIndex < activeAssessmentQuestions.length ? (
                 <div className="question-view">
                   <h3>{currentQuestion.prompt}</h3>
                   <div className="answer-list">{currentQuestion.answers.map((answer, index) => <button key={answer} className={selectedAnswer === index ? 'answer selected' : 'answer'} onClick={() => chooseAnswer(index)}><span>{String.fromCharCode(65 + index)}</span>{answer}</button>)}</div>
-                  <div className="quiz-actions"><button className="secondary-button" disabled={questionIndex === 0} onClick={() => { const previousIndex = Math.max(0, questionIndex - 1); setQuestionIndex(previousIndex); setSelectedAnswer(answers[previousIndex] ?? null) }}>← Previous</button><button className="primary-button" disabled={selectedAnswer === null} onClick={questionIndex === assessmentQuestions.length - 1 ? finishAssessment : nextQuestion}>Next question →</button></div>
+                  <div className="quiz-actions"><button className="secondary-button" disabled={questionIndex === 0} onClick={() => { const previousIndex = Math.max(0, questionIndex - 1); setQuestionIndex(previousIndex); setSelectedAnswer(answers[previousIndex] ?? null) }}>← Previous</button><button className="primary-button" disabled={selectedAnswer === null} onClick={questionIndex === activeAssessmentQuestions.length - 1 ? finishAssessment : nextQuestion}>Next question →</button></div>
                 </div>
               ) : (
                 <div className="result-view">
                   <div className="result-badge">{level ?? '—'}</div>
                   <span className="eyebrow">ASSESSMENT COMPLETE</span>
                   <h3>{currentLevel?.title ?? 'Assessment complete'}</h3>
-                  <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {assessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
+                  <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {activeAssessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
                   <button className="primary-button" onClick={() => navigate('learn')}>View my plan →</button>
                 </div>
               )}
@@ -1205,7 +1353,7 @@ function App() {
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
                     <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
-                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang="es">{word.spanish}</strong><span>{word.english}</span><button className="audio-button" onClick={() => playActivityPhrase(word.spanish)} aria-label={`Listen to ${word.spanish}`}>▶ Listen</button></div>)}</div>
+                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={isItalian ? 'it' : 'es'}>{word.spanish}</strong><span>{word.english}</span><button className="audio-button" onClick={() => playActivityPhrase(word.spanish)} aria-label={`Listen to ${word.spanish}`}>▶ Listen</button></div>)}</div>
                   </article>
                   <article className="learn-grammar">
                     <span className="eyebrow">GRAMMAR · ONE STEP AT A TIME</span>
@@ -1253,29 +1401,29 @@ function App() {
                   </article>
                   <article className="speaking-practice">
                     <span className="eyebrow">SPEAKING PRACTICE</span>
-                    <h3>Say it in Spanish</h3>
+                    <h3>Say it in {learningLanguage}</h3>
                     <p>{selectedSupport?.speakingPrompt}</p>
                     <div className="speaking-actions">
                       {speechPracticeStatus === 'listening'
                         ? <button className="primary-button" onClick={stopSpeakingPractice} aria-label="Stop recording">■ Stop recording</button>
                         : <button className="primary-button" onClick={startSpeakingPractice}><span aria-hidden="true">🎙</span> Start speaking</button>}
-                      <span role="status" aria-live="polite">{speechPracticeStatus === 'listening' ? 'Listening… speak your response in Spanish.' : speechPracticeStatus === 'ready' ? 'Recording finished. You can try again.' : 'Your browser will ask for microphone access.'}</span>
+                      <span role="status" aria-live="polite">{speechPracticeStatus === 'listening' ? `Listening… speak your response in ${learningLanguage}.` : speechPracticeStatus === 'ready' ? 'Recording finished. You can try again.' : 'Your browser will ask for microphone access.'}</span>
                     </div>
-                    {speechTranscript && <div className="speech-transcript"><strong>What we heard</strong><p lang="es">{speechTranscript}</p><small>This transcript helps you review what was recognized; it does not score pronunciation.</small></div>}
+                    {speechTranscript && <div className="speech-transcript"><strong>What we heard</strong><p lang={isItalian ? 'it' : 'es'}>{speechTranscript}</p><small>This transcript helps you review what was recognized; it does not score pronunciation.</small></div>}
                     {speechError && <p className="speech-error" role="alert">{speechError}</p>}
                   </article>
                 </div>
               </div>
             ) : (
               <>
-                <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE SPANISH LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No Spanish required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review.</p></div><span className="question-count">{completedLearnLessons.length} of {coursePlans.length} lessons complete</span></div>
-                <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${coursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / coursePlans.length * 100}%` }} /></div>
-                {courseLevels.map((courseLevel) => {
-                  const levelLessons = coursePlans.filter((plan) => plan.courseLevel === courseLevel)
+                <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
+                <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${activeCoursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / activeCoursePlans.length * 100}%` }} /></div>
+                {activeCourseLevels.map((courseLevel) => {
+                  const levelLessons = activeCoursePlans.filter((plan) => plan.courseLevel === courseLevel)
                   const completedInLevel = levelLessons.filter((plan) => completedLearnLessons.includes(plan.id)).length
                   return <section className="learn-level" key={courseLevel}>
                     <div className="learn-level-heading">
-                      <div><span className="level-badge">{courseLevel}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevelInfo[courseLevel].description}</p></div></div>
+                      <div><span className="level-badge">{courseLevel}</span><div><h3>{courseLevelInfo[courseLevel].title}</h3><p>{courseLevel === 'Pre-A1' ? `No ${learningLanguage} needed. Learn sounds, greetings, first words, and useful short sentences.` : courseLevelInfo[courseLevel].description}</p></div></div>
                       <small>{completedInLevel} / {levelLessons.length} complete</small>
                     </div>
                     <div className="course-plan-grid">{levelLessons.map((item, index) => {
@@ -1296,9 +1444,9 @@ function App() {
           </div>
         )}
 
-        {page === 'grammar' && <GrammarTab key={grammarTabKey} completedLessons={completedGrammarLessons} onComplete={completeGrammarLesson} />}
+        {page === 'grammar' && <GrammarTab key={`${grammarTabKey}-${learningLanguage}`} completedLessons={completedGrammarLessons} onComplete={completeGrammarLesson} lessons={activeGrammarLessons} levels={activeGrammarLevels} language={learningLanguage} />}
 
-        {page === 'vocabulary' && <VocabularyTab />}
+        {page === 'vocabulary' && <VocabularyTab entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} />}
 
         {page === 'resources' && (
           <div className="content">
@@ -1308,8 +1456,10 @@ function App() {
                 <div className="lesson-hero"><div><span className="eyebrow">{selectedResource.type === 'video' ? 'VIDEO RESOURCE' : 'READING RESOURCE'}</span><h2>{selectedResource.title}</h2><p>{selectedResource.description}</p></div><span className="level-badge">{selectedResource.level}</span></div>
                 {selectedResource.type === 'video' ? (
                   <>
-                    <div className="video-frame"><iframe src={selectedResource.embedUrl} title={selectedResource.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
-                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">Open original video ↗</a>
+                    {selectedResource.embedUrl
+                      ? <div className="video-frame"><iframe src={selectedResource.embedUrl} title={selectedResource.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
+                      : <p>This video resource opens on its publisher’s site.</p>}
+                    <a className="video-source" href={selectedResource.url} target="_blank" rel="noreferrer">{selectedResource.embedUrl ? 'Open original video ↗' : 'Browse videos ↗'}</a>
                   </>
                 ) : (
                   <div className="reading-panel"><div className="reading-text"><span className="reading-label">{selectedResource.source} · {selectedResource.tag}</span><button className="audio-button" onClick={() => selectedResource.passage && playActivityPhrase(selectedResource.passage)}><span aria-hidden="true">▶</span> Listen to passage</button>{selectedResource.passage && <p>{selectedResource.passage}</p>}</div><div className="comprehension"><h3>Quick comprehension</h3>{selectedResource.comprehension?.map((question, questionIndex) => <div key={question.prompt}><strong>{question.prompt}</strong><div>{question.answers.map((answer, answerIndex) => <button key={answer} className={passageAnswers[questionIndex] === answerIndex ? 'selected' : ''} onClick={() => choosePassageAnswer(questionIndex, answerIndex)}>{answer}</button>)}</div></div>)}</div><button className="primary-button" onClick={checkPassage} disabled={!selectedResource.comprehension?.length || passageAnswers.length !== selectedResource.comprehension.length || passageAnswers.some((answer) => answer === undefined)}>Check answers ✓</button>{passageChecked && <p className="score-message" role="status">You scored {passageScore} out of {selectedResource.comprehension?.length}. {passageScore === selectedResource.comprehension?.length ? 'Excellent comprehension!' : 'Review the passage and try again.'}</p>}</div>
@@ -1317,7 +1467,7 @@ function App() {
               </div>
             ) : (
               <>
-                <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>Watch, listen & read</h2><p>Graded passages, comprehension practice, and embedded videos for every stage of your Spanish journey.</p><span className="question-count">{visibleResources.length} of {resources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{(['all', 'video', 'reading'] as const).map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...courseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
+                <div className="section-heading"><div><span className="eyebrow">STUDY LIBRARY</span><h2>{isItalian ? 'Read & listen' : 'Watch, listen & read'}</h2><p>Graded passages, comprehension practice, and learning resources for every stage of your {learningLanguage} journey.</p><span className="question-count">{visibleResources.length} of {activeResources.length} resources</span></div><div className="resource-filters"><div className="filters" aria-label="Filter resources by type">{resourceTypeFilters.map((filter) => <button key={filter} className={resourceFilter === filter ? 'active' : ''} onClick={() => setResourceFilter(filter)}>{filter === 'all' ? 'All types' : filter === 'video' ? 'Video' : 'Reading'}</button>)}</div><div className="filters" aria-label="Filter resources by CEFR level">{(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={resourceLevelFilter === filter ? 'active' : ''} onClick={() => setResourceLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}</div></div></div>
                 <div className="resource-grid">{visibleResources.map((resource) => <article className="resource-card" key={resource.title}><div className={`resource-art ${resource.type}`}><span>{resource.type === 'video' ? '▶' : '↗'}</span></div><div><div className="resource-meta"><span>{resource.type}</span><span>{resource.level}</span></div><h3>{resource.title}</h3><p>{resource.description}</p><div className="resource-footer"><small>{resource.source} · {resource.tag}</small><button className="resource-open" onClick={() => openResource(resource)}>{resource.type === 'video' ? 'Watch video →' : 'Read & practice →'}</button></div></div></article>)}</div>
               </>
             )}
@@ -1326,11 +1476,11 @@ function App() {
 
         {page === 'play' && (
           <div className="content">
-            <div className="section-heading"><div><span className="eyebrow">INTERACTIVE PRACTICE</span><h2>Play. Listen. Remember.</h2><p>Short, low-pressure activities designed for focused daily practice.</p></div><span className="question-count">{completedActivities.length} of {activityCards.length} complete</span></div>
+            <div className="section-heading"><div><span className="eyebrow">INTERACTIVE PRACTICE</span><h2>Play. Listen. Remember.</h2><p>Short, low-pressure activities designed for focused daily practice.</p></div><span className="question-count">{completedActivities.length} of {activeActivityCards.length} complete</span></div>
             <div className="practice-level-filter filters" aria-label="Filter activities by CEFR level">
-              {(['all', ...courseLevels] as const).map((filter) => <button key={filter} className={activityLevelFilter === filter ? 'active' : ''} onClick={() => {
+              {(['all', ...activeCourseLevels] as const).map((filter) => <button key={filter} className={activityLevelFilter === filter ? 'active' : ''} onClick={() => {
                 setActivityLevelFilter(filter)
-                const firstMatchingIndex = activityCards.findIndex((activity) => filter === 'all' || activity.level === filter)
+                const firstMatchingIndex = activeActivityCards.findIndex((activity) => filter === 'all' || activity.level === filter)
                 if (firstMatchingIndex >= 0) setActivityIndex(firstMatchingIndex)
                 setActivityAnswer(null)
                 setActivityFeedback('')
@@ -1338,20 +1488,20 @@ function App() {
             </div>
             <div className="activity-layout">
               <article className="activity-card">
-                <div className="activity-top"><span className="activity-icon">{activityCards[activityIndex].icon}</span><div><small>{activityCards[activityIndex].level} · ACTIVITY {activityPosition + 1} OF {visibleActivityIndices.length}</small><h3>{activityCards[activityIndex].title}</h3></div></div>
-                <p>{activityCards[activityIndex].prompt}</p>
-                <button className="audio-button" onClick={() => playActivityPhrase(activityCards[activityIndex].audioPhrase)} aria-label={`Play Spanish audio: ${activityCards[activityIndex].audioPhrase}`}><span aria-hidden="true">▶</span> Play audio</button>
-                <div className="activity-options">{activityCards[activityIndex].options.map((option, index) => <button key={option} className={activityAnswer === index ? 'selected' : ''} onClick={() => { setActivityAnswer(index); setActivityFeedback('') }}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
+                <div className="activity-top"><span className="activity-icon">{activeActivityCards[activityIndex].icon}</span><div><small>{activeActivityCards[activityIndex].level} · ACTIVITY {activityPosition + 1} OF {visibleActivityIndices.length}</small><h3>{activeActivityCards[activityIndex].title}</h3></div></div>
+                <p>{activeActivityCards[activityIndex].prompt}</p>
+                <button className="audio-button" onClick={() => playActivityPhrase(activeActivityCards[activityIndex].audioPhrase)} aria-label={`Play ${learningLanguage} audio: ${activeActivityCards[activityIndex].audioPhrase}`}><span aria-hidden="true">▶</span> Play audio</button>
+                <div className="activity-options">{activeActivityCards[activityIndex].options.map((option, index) => <button key={option} className={activityAnswer === index ? 'selected' : ''} onClick={() => { setActivityAnswer(index); setActivityFeedback('') }}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
                 <div className="activity-actions"><button className="secondary-button" disabled={activityPosition <= 0} onClick={() => changeActivity(-1)}>← Previous</button><div><button className="secondary-button" onClick={() => changeActivity(1)} disabled={activityPosition >= visibleActivityIndices.length - 1}>Next card</button><button className="primary-button" disabled={activityAnswer === null} onClick={completeActivity}>Complete activity ✓</button></div></div>
                 {activityFeedback && <p className={`activity-feedback ${activityFeedback.startsWith('Correct') ? '' : 'error'}`} role="status">{activityFeedback}</p>}
               </article>
-              <aside className="activity-side"><span className="eyebrow">YOUR MOMENTUM</span><div className="activity-score"><strong>{completedActivities.length}</strong><span>activities completed</span></div><div className="activity-progress">{activityCards.map((card, index) => <span key={card.title} className={completedActivities.includes(index) ? 'done' : ''} />)}</div><h4>Quick tip</h4><p>Say the answer aloud before selecting it. Speaking the target phrase helps it stick.</p></aside>
+              <aside className="activity-side"><span className="eyebrow">YOUR MOMENTUM</span><div className="activity-score"><strong>{completedActivities.length}</strong><span>activities completed</span></div><div className="activity-progress">{activeActivityCards.map((card, index) => <span key={card.title} className={completedActivities.includes(index) ? 'done' : ''} />)}</div><h4>Quick tip</h4><p>Say the answer aloud before selecting it. Speaking the target phrase helps it stick.</p></aside>
             </div>
-            <section className="practice-video">
+            {!isItalian && <section className="practice-video">
               <div><span className="eyebrow">SPANISH VIDEO</span><h2>A Very Special Dinner</h2><p>Watch a beginner-friendly Spanish story. Listen for familiar words and use the context to follow along.</p></div>
               <div className="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/wEO_8ghFM04" title="Learn Spanish with This Story: A Very Special Dinner (Beginner), Dreaming Spanish" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
               <a className="video-source" href="https://www.youtube.com/watch?v=wEO_8ghFM04" target="_blank" rel="noreferrer">Open video on YouTube ↗</a>
-            </section>
+            </section>}
           </div>
         )}
 
@@ -1360,8 +1510,8 @@ function App() {
             <div className="section-heading"><div><span className="eyebrow">YOUR PROGRESS</span><h2>See your momentum</h2><p>Track completed lessons, grammar practice, activities, and the days you show up to learn.</p></div><span className="question-count">{completedLearnLessons.length + completedGrammarLessons.length + completedActivities.length} learning items complete</span></div>
             <div className="progress-grid">
               <article className="card"><span className="eyebrow">STUDY TIME</span><strong>{minutes}</strong><p>minutes recorded</p><div className="mini-chart">{weekDays.map((day) => <span key={day.date} title={`${day.label}${activeDates.includes(day.date) ? ' · learning day' : ''}`} style={{ height: `${activeDates.includes(day.date) ? 90 : 12}%` }} />)}</div><small className="progress-caption">{activeDates.filter((date) => weekDays.some((day) => day.date === date)).length} active day{activeDates.filter((date) => weekDays.some((day) => day.date === date)).length === 1 ? '' : 's'} this week</small></article>
-              <article className="card progress-course-card"><span className="eyebrow">LEARN · PRE-A1 TO C2</span><h3>{completedLearnLessons.length} / {coursePlans.length} lessons</h3><div className="progress-bar"><span style={{ width: `${learnCompletion}%` }} /></div><p>Reading passages, vocabulary, grammar, listening, and speaking.</p><button className="secondary-button" onClick={() => navigate('learn')}>Open learning path →</button></article>
-              <article className="card progress-course-card"><span className="eyebrow">GRAMMAR COURSE</span><h3>{completedGrammarLessons.length} / {grammarLessons.length} lessons</h3><div className="progress-bar"><span style={{ width: `${completedGrammarLessons.length / grammarLessons.length * 100}%` }} /></div><p>Structured explanations and scored exercises from A1 to C2.</p><button className="secondary-button" onClick={() => navigate('grammar')}>Open grammar →</button></article>
+              <article className="card progress-course-card"><span className="eyebrow">LEARN · PRE-A1 TO C2</span><h3>{completedLearnLessons.length} / {activeCoursePlans.length} lessons</h3><div className="progress-bar"><span style={{ width: `${learnCompletion}%` }} /></div><p>Reading passages, vocabulary, grammar, listening, and speaking.</p><button className="secondary-button" onClick={() => navigate('learn')}>Open learning path →</button></article>
+              <article className="card progress-course-card"><span className="eyebrow">GRAMMAR COURSE</span><h3>{completedGrammarLessons.length} / {activeGrammarLessons.length} lessons</h3><div className="progress-bar"><span style={{ width: `${completedGrammarLessons.length / activeGrammarLessons.length * 100}%` }} /></div><p>Structured explanations and scored exercises from A1 to C2.</p><button className="secondary-button" onClick={() => navigate('grammar')}>Open grammar →</button></article>
               <article className="card"><span className="eyebrow">MILESTONES</span><h3>Achievements</h3>{[
                 ['First lesson', 'Complete a lesson in the learning path', completedLearnLessons.length > 0],
                 ['Grammar builder', 'Complete three grammar lessons', completedGrammarLessons.length >= 3],

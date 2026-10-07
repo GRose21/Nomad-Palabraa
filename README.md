@@ -1,22 +1,22 @@
-# Nomad Palabra — Spanish CEFR Coach
+# Nomad Palabra — CEFR Language Coach
 
-Nomad Palabra is a responsive React application for estimating a learner's CEFR level, creating a personalized study plan, and finding useful Spanish video, TV, movie, news, book, and reading resources.
+Nomad Palabra is a responsive React application for estimating a learner's CEFR level, creating a personalized study plan, and finding useful language-learning resources. Choose Spanish or Italian from the selector at the top of the app; the English interface stays the same while lessons, grammar, vocabulary, assessment, audio, and practice switch to the selected language. Progress is saved separately for each language.
 
 ## Features
 
 - An 18-question CEFR-style assessment
-- A progressive 33-lesson Spanish course from Pre-A1 (no prior knowledge) through C2, with vocabulary, grammar, graded passages, comprehension, listening, speaking, and saved lesson progress
-- A 33-lesson grammar course from A1 foundations through C2 structures, with teaching examples and scored exercises
-- A searchable, CEFR-filtered vocabulary library assembled from grammar and learning-path lessons
+- Progressive Spanish and Italian learning paths from Pre-A1 (no prior knowledge) through C2, with vocabulary, grammar, graded passages, comprehension, listening, speaking, and saved lesson progress
+- Grammar courses for both languages from A1 foundations through C2 structures, with teaching examples and scored exercises
+- Searchable, CEFR-filtered vocabulary libraries assembled from each language's grammar and learning-path lessons
 - A 21-item resource library with embedded videos and graded in-app readings, audio, and comprehension checks
-- 22 level-filtered practice activities with Spanish audio across Pre-A1–C2
-- An 18-question placement assessment spanning beginner through advanced Spanish
+- 22 level-filtered practice activities with Spanish or Italian audio across Pre-A1–C2
+- An 18-question placement assessment for each language, spanning beginner through advanced
 - Progress tracking with course and grammar completion, recorded study time, activity milestones, an editable daily goal, and a calendar-based learning streak
 - Optional email accounts with per-user cloud-synced progress through Supabase; without account configuration, progress remains saved in the current browser
 - Dark mode and browser-persisted progress
 - Responsive desktop, tablet, and mobile design
 
-Grammar lesson examples that should appear in Vocabulary use the format `Spanish phrase — English translation`; those pairs are extracted and deduplicated automatically. Vocabulary also includes the translated terms attached to Pre-A1 and Learn-path lessons.
+Grammar lesson examples that should appear in Vocabulary use the format `target-language phrase — English translation`; those pairs are extracted and deduplicated automatically. Vocabulary also includes the translated terms attached to Pre-A1 and Learn-path lessons.
 
 ## Run locally
 

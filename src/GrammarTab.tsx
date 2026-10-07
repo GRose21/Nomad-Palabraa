@@ -1,17 +1,20 @@
 import { useState } from 'react'
-import { grammarLessons, grammarLevels, type GrammarLesson, type GrammarLevel } from './grammar'
+import { grammarLessons as defaultLessons, grammarLevels as defaultLevels, type GrammarLesson, type GrammarLevel } from './grammar'
 
 type GrammarTabProps = {
   completedLessons: string[]
   onComplete: (lessonId: string) => void
+  lessons?: GrammarLesson[]
+  levels?: readonly GrammarLevel[]
+  language?: string
 }
 
-function GrammarTab({ completedLessons, onComplete }: GrammarTabProps) {
-  const orderedLessons = [...grammarLessons].sort((first, second) => grammarLevels.indexOf(first.level) - grammarLevels.indexOf(second.level))
+function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, levels = defaultLevels, language = 'Spanish' }: GrammarTabProps) {
+  const orderedLessons = [...lessons].sort((first, second) => levels.indexOf(first.level) - levels.indexOf(second.level))
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
-  const selectedLesson = grammarLessons.find((lesson) => lesson.id === selectedLessonId) ?? null
+  const selectedLesson = lessons.find((lesson) => lesson.id === selectedLessonId) ?? null
   const completedSet = new Set(completedLessons)
 
   const openLesson = (lesson: GrammarLesson) => {
@@ -56,23 +59,23 @@ function GrammarTab({ completedLessons, onComplete }: GrammarTabProps) {
     return (
       <div className="content grammar-page">
         <div className="section-heading">
-          <div><span className="eyebrow">SPANISH GRAMMAR COURSE</span><h2>Build your grammar, step by step</h2><p>Start with sentence basics and work through verb forms, tenses, pronouns, and advanced structures.</p></div>
-          <span className="question-count">{completedSet.size} of {grammarLessons.length} lessons complete</span>
+          <div><span className="eyebrow">{language.toLocaleUpperCase()} GRAMMAR COURSE</span><h2>Build your grammar, step by step</h2><p>Start with sentence basics and work through verb forms, tenses, pronouns, and advanced structures.</p></div>
+          <span className="question-count">{completedSet.size} of {lessons.length} lessons complete</span>
         </div>
-        <div className="grammar-overall-progress" aria-label={`${completedSet.size} of ${grammarLessons.length} grammar lessons complete`}>
-          <span style={{ width: `${completedSet.size / grammarLessons.length * 100}%` }} />
+        <div className="grammar-overall-progress" aria-label={`${completedSet.size} of ${lessons.length} grammar lessons complete`}>
+          <span style={{ width: `${completedSet.size / lessons.length * 100}%` }} />
         </div>
-        {grammarLevels.map((level) => {
-          const lessons = grammarLessons.filter((lesson) => lesson.level === level)
-          const completedInLevel = lessons.filter((lesson) => completedSet.has(lesson.id)).length
+        {levels.map((level) => {
+          const lessonsAtLevel = lessons.filter((lesson) => lesson.level === level)
+          const completedInLevel = lessonsAtLevel.filter((lesson) => completedSet.has(lesson.id)).length
           return (
             <section className="grammar-level" key={level}>
               <div className="grammar-level-heading">
                 <div><span className="level-badge">{level}</span><div><h3>{level} grammar</h3><p>{levelDescription[level]}</p></div></div>
-                <small>{completedInLevel} / {lessons.length} complete</small>
+                <small>{completedInLevel} / {lessonsAtLevel.length} complete</small>
               </div>
               <div className="grammar-lesson-grid">
-                {lessons.map((lesson, index) => {
+                {lessonsAtLevel.map((lesson, index) => {
                   const isComplete = completedSet.has(lesson.id)
                   return (
                     <article className={`grammar-lesson-card${isComplete ? ' complete' : ''}`} key={lesson.id} onClick={() => goToLesson(lesson)}>

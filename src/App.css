@@ -52,6 +52,9 @@ main { grid-column: 2; min-width: 0; }
 .topbar h1 { margin: 4px 0 0; font: 720 19px/1.2 Inter, sans-serif; }
 .topbar > div:first-of-type { flex: 1; }
 .top-actions { display: flex; align-items: center; gap: 10px; }
+.language-select { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; font-weight: 750; }
+.language-select select { border: 1px solid var(--line); border-radius: 9px; padding: 8px 27px 8px 10px; color: var(--ink); background: var(--card); font: inherit; font-size: 11px; }
+.language-select select:focus-visible { outline: 3px solid rgba(239,127,98,.4); outline-offset: 2px; }
 .icon-button, .menu-button { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
 .menu-button { display: none; }
 .primary-button, .white-button, .secondary-button { border: 0; border-radius: 11px; padding: 12px 17px; font-size: 12px; font-weight: 750; transition: transform .18s, opacity .18s; }
