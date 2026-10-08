@@ -33,11 +33,17 @@ Source identifiers and attribution:
 - `PWN-3.0`: Princeton WordNet 3.0, Princeton University; see the [WordNet license](https://wordnet.princeton.edu/license-and-commercial-use).
 - `MCR-SPA`: Spanish Multilingual Central Repository, CC BY 3.0.
 - `MWN-ITA`: Italian MultiWordNet, CC BY 3.0; `IWN-ITA`: Italian ItalWordNet, ODC-By 1.0.
-- `COW-CMN`: Chinese Open Wordnet; retain its source copyright and disclaimer notices.
-- `AWN-ARB`: Arabic WordNet, CC BY-SA 3.0.
+- `COW-CMN`: Chinese Open Wordnet, Copyright 2013, 2014 Francis Bond and Shan Wang; retain its source copyright and disclaimer.
+- `AWN-ARB`: Arabic WordNet, CC BY-SA 3.0. Attribution: Abouenour Lahsen, Karim Bouzoubaa, and Paolo Rosso (2015), Mohammed V Rabat University and Universitat Politècnica de València; Musa Alkhalifa and Sabri Elkateb (2007), UPC and the University of Manchester.
 - `WIKT-RUS`: Russian Wiktionary-derived entries in Open Multilingual Wordnet, CC BY-SA 3.0. Cite Bond and Foster, 2013, “Linking and extending an open multilingual wordnet,” ACL 2013.
 
 The vocabulary includes adapted material under the applicable source licenses; source identifiers are attached per entry because the five language resources do not all share one license. Frequency ordering uses [wordfreq](https://github.com/rspeer/wordfreq) by Robyn Speer (data under CC BY-SA 4.0); see its [NOTICE](https://github.com/rspeer/wordfreq/blob/master/NOTICE.md) for source-specific attributions, including SUBTLEX contributors, Wikipedia, Leeds Internet Corpus, ParaCrawl, OpenSubtitles, and Google Books Ngrams. Vocabulary added directly by lessons is authored separately and is not part of this dictionary cross-check.
+
+Required notices for the bundled English and Chinese WordNet-derived data:
+
+> WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved. THIS SOFTWARE AND DATABASE IS PROVIDED “AS IS” AND PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT INFRINGE ANY THIRD-PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+> Chinese Open Wordnet Copyright 2013, 2014 by Francis Bond and Shan Wang. All rights reserved. THIS SOFTWARE AND DATABASE IS PROVIDED “AS IS” AND WE MAKE NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT LIMITATION, WE MAKE NO REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT INFRINGE ANY THIRD-PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
 
 ## Run locally
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { grammarLessons } from './grammar.ts'
 import { getVocabulary } from './vocabulary.ts'
-import { dlptDictionarySourceLabels, getDlptVocabulary, dlptVocabularyTopics } from './dlptVocabulary.ts'
+import { dlptDictionarySourceIds, dlptDictionarySourceLabels, getDlptVocabulary, dlptVocabularyTopics } from './dlptVocabulary.ts'
 import { learningLanguages } from './extraLanguages.ts'
 
 test('builds vocabulary from the example translations in grammar lessons', () => {
@@ -34,11 +34,14 @@ test('provides at least 1,000 unique, leveled DLPT vocabulary words for every la
   for (const language of learningLanguages) {
     const entries = getDlptVocabulary(language)
     assert.ok(entries.length >= 1000, `${language} should contain at least 1,000 words`)
-    assert.equal(new Set(entries.map((entry) => entry.spanish.toLocaleLowerCase())).size, entries.length, `${language} target words should be unique`)
+    const targetKey = (word: string) => language === 'Modern Standard Arabic'
+      ? word.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase()
+      : word.toLocaleLowerCase()
+    assert.equal(new Set(entries.map((entry) => targetKey(entry.spanish))).size, entries.length, `${language} target words should be unique`)
     assert.equal(new Set(entries.map((entry) => entry.english.toLocaleLowerCase())).size, entries.length, `${language} English prompts should be unique`)
     for (const entry of entries) {
       assert.ok(entry.sense, `${language} ${entry.spanish} should include its dictionary sense`)
-      assert.ok(entry.dictionarySources && entry.dictionarySources.length >= 2, `${language} ${entry.spanish} should cite at least two dictionaries`)
+      assert.deepEqual(entry.dictionarySources, dlptDictionarySourceIds[language], `${language} ${entry.spanish} should cite its language-specific dictionaries`)
       assert.ok(entry.dictionarySources.every((source) => source in dlptDictionarySourceLabels), `${language} ${entry.spanish} should cite known dictionaries`)
       assert.ok(entry.dictionarySources.includes('PWN-3.0'), `${language} ${entry.spanish} should be aligned with Princeton WordNet`)
     }
@@ -49,6 +52,8 @@ test('provides at least 1,000 unique, leveled DLPT vocabulary words for every la
       assert.ok(entries.some((entry) => entry.topic === topic), `${language} should include the ${topic} topic`)
     }
   }
+  const spanish = getDlptVocabulary('Spanish')
+  assert.ok(!spanish.some((entry) => entry.spanish === 'dos' && entry.english === 'unity'), 'Spanish dos must not be paired with the sense of unity')
 })
 
 test('deduplicates DLPT vocabulary against lesson vocabulary while preserving topic metadata', () => {

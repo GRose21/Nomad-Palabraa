@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react'
 import { courseLevels, getVocabulary, type VocabularyEntry } from './vocabulary'
 import { dlptDictionarySourceLabels } from './dlptVocabulary'
+import AudioControl from './AudioControl'
 import type { CourseLevel } from './learnCourse'
 
 type VocabularyTabProps = {
   entries?: VocabularyEntry[]
   levels?: readonly CourseLevel[]
   language?: string
+  speechStatus: 'idle' | 'playing' | 'paused'
+  activeSpeechText: string
+  activeSpeechLanguage: string
+  onSpeak: (phrase: string) => void
 }
 
 type PracticeMode = 'flashcards' | 'quiz' | 'match'
@@ -44,7 +49,15 @@ function makeQuizQuestions(entries: VocabularyEntry[], pool: VocabularyEntry[], 
   })
 }
 
-function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }: VocabularyTabProps) {
+function VocabularyTab({
+  entries,
+  levels = courseLevels,
+  language = 'Spanish',
+  speechStatus,
+  activeSpeechText,
+  activeSpeechLanguage,
+  onSpeak,
+}: VocabularyTabProps) {
   const [search, setSearch] = useState('')
   const [levelFilter, setLevelFilter] = useState<'all' | CourseLevel>('all')
   const [topicFilter, setTopicFilter] = useState('all')
@@ -146,11 +159,23 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
   const currentFlashcard = practiceEntries[flashcardIndex]
   const quizScore = quizAnswers.filter((answer) => answer?.correct).length
   const matchComplete = matchEntries.length > 0 && matchedPairs.length === matchEntries.length
+  const renderAudioControl = (entry: VocabularyEntry, label = 'Listen to word') => (
+    <div className="vocabulary-audio">
+      <AudioControl
+        phrase={entry.spanish}
+        language={language}
+        status={speechStatus}
+        isCurrent={activeSpeechText === entry.spanish && activeSpeechLanguage === targetLanguageCode}
+        onActivate={onSpeak}
+        label={label}
+      />
+    </div>
+  )
 
   return (
     <div className="content vocabulary-page">
       <div className="section-heading">
-        <div><span className="eyebrow">LESSON + DLPT VOCABULARY</span><h2>Words in context</h2><p>Explore more than 1,000 DLPT-oriented words for {language}, alongside terms from grammar lessons and the complete learning path.</p></div>
+        <div><span className="eyebrow">LESSON + DLPT VOCABULARY</span><h2>Words in context</h2><p>Explore more than 1,000 DLPT-oriented words for {language}. Reveal a word to see its dictionary-checked sense and sources, alongside terms from lessons and the learning path.</p></div>
         <span className="question-count">{visibleEntries.length} of {vocabulary.length} entries</span>
       </div>
       <div className="vocabulary-controls">
@@ -190,6 +215,7 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
               <div className="vocabulary-flashcard">
                 <span>{currentFlashcard.level}{currentFlashcard.topic ? ` · ${currentFlashcard.topic}` : ''}</span>
                 <strong lang={targetLanguageCode} dir={targetDirection}>{currentFlashcard.spanish}</strong>
+                {renderAudioControl(currentFlashcard)}
                 {flashcardRevealed ? <>
                   <p>{currentFlashcard.english}</p>
                   {currentFlashcard.sense && <small className="vocabulary-sense">{currentFlashcard.sense}</small>}
@@ -207,6 +233,7 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
               <div className="vocabulary-quiz-question">
                 <span>Choose the English meaning</span>
                 <strong lang={targetLanguageCode} dir={targetDirection}>{currentQuizQuestion.entry.spanish}</strong>
+                {renderAudioControl(currentQuizQuestion.entry)}
               </div>
               <div className="vocabulary-quiz-options">
                 {currentQuizQuestion.options.map((option) => {
@@ -239,7 +266,10 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
                 <div><h4>{language}</h4>{matchTargetEntries.map((entry) => {
                   const key = vocabularyKey(entry)
                   const matched = matchedPairs.includes(key)
-                  return <button key={key} lang={targetLanguageCode} dir={targetDirection} className={`${selectedMatch === key ? 'selected' : ''}${matched ? ' matched' : ''}`} disabled={matched} aria-pressed={selectedMatch === key} onClick={() => { setSelectedMatch(key); setMatchFeedback('') }}>{entry.spanish}</button>
+                  return <div className="vocabulary-match-target-row" key={key}>
+                    <button lang={targetLanguageCode} dir={targetDirection} className={`${selectedMatch === key ? 'selected' : ''}${matched ? ' matched' : ''}`} disabled={matched} aria-pressed={selectedMatch === key} onClick={() => { setSelectedMatch(key); setMatchFeedback('') }}>{entry.spanish}</button>
+                    {renderAudioControl(entry)}
+                  </div>
                 })}</div>
                 <div><h4>English</h4>{matchEnglishEntries.map((entry) => {
                   const key = vocabularyKey(entry)
@@ -257,16 +287,19 @@ function VocabularyTab({ entries, levels = courseLevels, language = 'Spanish' }:
         {pageEntries.map((entry) => {
           const key = `${entry.lessonId}:${entry.spanish}`
           const isRevealed = revealedEntries.includes(key)
-          return <button className={`vocabulary-card${isRevealed ? ' revealed' : ''}`} key={key} onClick={() => toggleEntry(entry)} aria-expanded={isRevealed}>
-            <span className="vocabulary-meta"><span>{entry.level}{entry.topic ? ` · ${entry.topic}` : ''}</span><span>{isRevealed ? 'MEANING' : 'TAP TO REVEAL'}</span></span>
-            <strong lang={targetLanguageCode} dir={targetDirection}>{entry.spanish}</strong>
-            {isRevealed && <>
-              <span className="vocabulary-translation">{entry.english}</span>
-              {entry.sense && <span className="vocabulary-sense">{entry.sense}</span>}
-              {entry.dictionarySources && <span className="vocabulary-evidence">Cross-checked in {entry.dictionarySources.map((source) => dlptDictionarySourceLabels[source]).join(' · ')}</span>}
-            </>}
-            <span className="vocabulary-source">{entry.lessonTitle}</span>
-          </button>
+          return <div className="vocabulary-card-item" key={key}>
+            <button className={`vocabulary-card${isRevealed ? ' revealed' : ''}`} onClick={() => toggleEntry(entry)} aria-expanded={isRevealed}>
+              <span className="vocabulary-meta"><span>{entry.level}{entry.topic ? ` · ${entry.topic}` : ''}</span><span>{isRevealed ? 'MEANING' : 'TAP TO REVEAL'}</span></span>
+              <strong lang={targetLanguageCode} dir={targetDirection}>{entry.spanish}</strong>
+              {isRevealed && <>
+                <span className="vocabulary-translation">{entry.english}</span>
+                {entry.sense && <span className="vocabulary-sense">{entry.sense}</span>}
+                {entry.dictionarySources && <span className="vocabulary-evidence">Cross-checked in {entry.dictionarySources.map((source) => dlptDictionarySourceLabels[source]).join(' · ')}</span>}
+              </>}
+              <span className="vocabulary-source">{entry.lessonTitle}</span>
+            </button>
+            {renderAudioControl(entry)}
+          </div>
         })}
       </div> : <p className="vocabulary-empty">No vocabulary matches that search. Try another word, level, or topic.</p>}
       {pageCount > 1 && <nav className="vocabulary-pagination" aria-label="Vocabulary pages">

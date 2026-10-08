@@ -1724,7 +1724,7 @@ function App() {
 
         {page === 'grammar' && <GrammarTab key={`${grammarTabKey}-${learningLanguage}`} completedLessons={completedGrammarLessons} onComplete={completeGrammarLesson} lessons={activeGrammarLessons} levels={activeGrammarLevels} language={learningLanguage} />}
 
-        {page === 'vocabulary' && <VocabularyTab key={learningLanguage} entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} />}
+        {page === 'vocabulary' && <VocabularyTab key={learningLanguage} entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} speechStatus={speechPlaybackStatus} activeSpeechText={activeSpeechText} activeSpeechLanguage={activeSpeechLanguage} onSpeak={playActivityPhrase} />}
 
         {page === 'resources' && (
           <div className="content">

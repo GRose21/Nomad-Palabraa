@@ -27,6 +27,14 @@ export const dlptDictionarySourceLabels: Record<string, string> = {
   'WIKT-RUS': 'Wiktionary-derived Russian Wordnet',
 }
 
+export const dlptDictionarySourceIds: Record<LearningLanguage, readonly string[]> = {
+  Spanish: ['PWN-3.0', 'MCR-SPA'],
+  Italian: ['PWN-3.0', 'MWN-ITA', 'IWN-ITA'],
+  'Mandarin Chinese': ['PWN-3.0', 'COW-CMN'],
+  'Modern Standard Arabic': ['PWN-3.0', 'AWN-ARB'],
+  Russian: ['PWN-3.0', 'WIKT-RUS'],
+}
+
 function isCourseLevel(value: unknown): value is CourseLevel {
   return typeof value === 'string' && courseLevels.some((level) => level === value)
 }
@@ -48,8 +56,9 @@ export function getDlptVocabulary(language: LearningLanguage): VocabularyEntry[]
       || typeof sense !== 'string'
       || !sense.trim()
       || !Array.isArray(dictionarySources)
-      || dictionarySources.length < 2
+      || dictionarySources.length !== dlptDictionarySourceIds[language].length
       || !dictionarySources.every((source) => typeof source === 'string' && source in dlptDictionarySourceLabels)
+      || !dlptDictionarySourceIds[language].every((source) => dictionarySources.includes(source))
     ) {
       throw new Error(`Invalid vocabulary fields in record ${index} for ${language}`)
     }
