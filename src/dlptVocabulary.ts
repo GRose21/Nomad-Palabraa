@@ -25,6 +25,7 @@ export const dlptDictionarySourceLabels: Record<string, string> = {
   'COW-CMN': 'Chinese Open Wordnet',
   'AWN-ARB': 'Arabic WordNet',
   'WIKT-RUS': 'Wiktionary-derived Russian Wordnet',
+  GTX: 'Google Translate',
 }
 
 export const dlptDictionarySourceIds: Record<LearningLanguage, readonly string[]> = {
@@ -56,9 +57,9 @@ export function getDlptVocabulary(language: LearningLanguage): VocabularyEntry[]
       || typeof sense !== 'string'
       || !sense.trim()
       || !Array.isArray(dictionarySources)
-      || dictionarySources.length !== dlptDictionarySourceIds[language].length
+      || !dictionarySources.length
       || !dictionarySources.every((source) => typeof source === 'string' && source in dlptDictionarySourceLabels)
-      || !dlptDictionarySourceIds[language].every((source) => dictionarySources.includes(source))
+      || (dictionarySources.length > 1 && !dlptDictionarySourceIds[language].every((source) => dictionarySources.includes(source)))
     ) {
       throw new Error(`Invalid vocabulary fields in record ${index} for ${language}`)
     }

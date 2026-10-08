@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { courseLevels, getVocabulary, type VocabularyEntry } from './vocabulary'
 import { dlptDictionarySourceLabels } from './dlptVocabulary'
 import AudioControl from './AudioControl'
@@ -15,11 +15,34 @@ type VocabularyTabProps = {
 }
 
 type PracticeMode = 'flashcards' | 'quiz' | 'match'
+type WordStatus = 'learning' | 'known'
+type StatusFilter = 'all' | 'new' | WordStatus
+type StatusMap = Record<string, WordStatus>
+
+const statusFilters: Array<[StatusFilter, string]> = [
+  ['all', 'All words'],
+  ['new', 'New to me'],
+  ['learning', 'Still learning'],
+  ['known', 'Already know'],
+]
+
+const statusStorageKey = (language: string) => `nomad-vocab-status-${language}`
+
+const readStatuses = (language: string): StatusMap => {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(statusStorageKey(language)) || '{}')
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(Object.entries(parsed).filter(([, value]) => value === 'learning' || value === 'known')) as StatusMap
+  } catch {
+    return {}
+  }
+}
+
 type QuizQuestion = { entry: VocabularyEntry; options: string[]; answer: string }
 
 const shuffle = <T,>(items: T[], seed: number): T[] => {
   const result = [...items]
-  let currentSeed = Math.floor(seed * 2_147_483_647) || 1
+  let currentSeed = Math.floor(((Math.sin(seed * 12.9898 + 78.233) * 43758.5453) % 1 + 1) % 1 * 2_147_483_645) + 1
   const random = () => {
     currentSeed = (currentSeed * 16_807) % 2_147_483_647
     return currentSeed / 2_147_483_647
@@ -65,6 +88,9 @@ function VocabularyTab({
   const [revealedEntries, setRevealedEntries] = useState<string[]>([])
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('flashcards')
   const [practiceRound, setPracticeRound] = useState(() => Math.random())
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [statuses, setStatuses] = useState<StatusMap>(() => readStatuses(language))
+  const [roundStatuses, setRoundStatuses] = useState<StatusMap>(statuses)
   const [quizAnswers, setQuizAnswers] = useState<Array<{ correct: boolean; choice: string }>>([])
   const [quizIndex, setQuizIndex] = useState(0)
   const [flashcardIndex, setFlashcardIndex] = useState(0)
@@ -74,6 +100,21 @@ function VocabularyTab({
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
   const [matchFeedback, setMatchFeedback] = useState('')
   const vocabulary = useMemo(() => entries ?? getVocabulary(), [entries])
+  useEffect(() => {
+    try { localStorage.setItem(statusStorageKey(language), JSON.stringify(statuses)) } catch { /* storage unavailable */ }
+  }, [language, statuses])
+  const statusOf = (entry: VocabularyEntry): StatusFilter => statuses[vocabularyKey(entry)] ?? 'new'
+  const setStatus = (entry: VocabularyEntry, status: WordStatus | 'new') => setStatuses((current) => {
+    const next = { ...current }
+    if (status === 'new') delete next[vocabularyKey(entry)]
+    else next[vocabularyKey(entry)] = status
+    return next
+  })
+  const statusCounts = useMemo(() => {
+    const counts = { all: vocabulary.length, new: 0, learning: 0, known: 0 }
+    for (const entry of vocabulary) counts[statuses[vocabularyKey(entry)] ?? 'new'] += 1
+    return counts
+  }, [statuses, vocabulary])
   const targetLanguageCode = language === 'Mandarin Chinese' ? 'zh-CN'
     : language === 'Modern Standard Arabic' ? 'ar'
       : language === 'Russian' ? 'ru-RU'
@@ -84,10 +125,12 @@ function VocabularyTab({
     () => [...new Set(vocabulary.flatMap((entry) => entry.topic ? [entry.topic] : []))].sort((a, b) => a.localeCompare(b)),
     [vocabulary],
   )
+  // Statuses are read when a round starts so marking words mid-round doesn't reshuffle it.
   const practicePool = useMemo(() => vocabulary.filter((entry) =>
     (levelFilter === 'all' || entry.level === levelFilter)
-    && (topicFilter === 'all' || entry.topic === topicFilter),
-  ), [levelFilter, topicFilter, vocabulary])
+    && (topicFilter === 'all' || entry.topic === topicFilter)
+    && (statusFilter === 'all' || (roundStatuses[vocabularyKey(entry)] ?? 'new') === statusFilter),
+  ), [levelFilter, topicFilter, statusFilter, vocabulary, roundStatuses])
   const practiceEntries = useMemo(() => shuffle(practicePool, practiceRound).slice(0, 10), [practicePool, practiceRound])
   const quizQuestions = useMemo(() => makeQuizQuestions(practiceEntries, practicePool, practiceRound), [practiceEntries, practicePool, practiceRound])
   const matchEntries = useMemo(() => shuffle(practicePool, practiceRound + 0.5).slice(0, 4), [practicePool, practiceRound])
@@ -99,9 +142,10 @@ function VocabularyTab({
       const matchesLevel = levelFilter === 'all' || entry.level === levelFilter
       const matchesTopic = topicFilter === 'all' || entry.topic === topicFilter
       const matchesSearch = !normalizedSearch || `${entry.spanish} ${entry.english} ${entry.sense ?? ''} ${entry.lessonTitle}`.toLocaleLowerCase().includes(normalizedSearch)
-      return matchesLevel && matchesTopic && matchesSearch
+      const matchesStatus = statusFilter === 'all' || (statuses[vocabularyKey(entry)] ?? 'new') === statusFilter
+      return matchesLevel && matchesTopic && matchesSearch && matchesStatus
     })
-  }, [levelFilter, search, topicFilter, vocabulary])
+  }, [levelFilter, search, statusFilter, statuses, topicFilter, vocabulary])
   const pageSize = 48
   const pageCount = Math.ceil(visibleEntries.length / pageSize)
   const pageEntries = visibleEntries.slice(page * pageSize, (page + 1) * pageSize)
@@ -123,12 +167,19 @@ function VocabularyTab({
   }
 
   const resetPractice = () => {
-    setPracticeRound((round) => round + 1)
+    setPracticeRound(Math.random())
+    setRoundStatuses(statuses)
     resetProgress()
   }
 
   const changeLevelFilter = (level: 'all' | CourseLevel) => {
     setLevelFilter(level)
+    setPage(0)
+    resetPractice()
+  }
+
+  const changeStatusFilter = (status: StatusFilter) => {
+    setStatusFilter(status)
     setPage(0)
     resetPractice()
   }
@@ -183,6 +234,9 @@ function VocabularyTab({
         <div className="filters" aria-label="Filter vocabulary by CEFR level">
           {(['all', ...levels] as const).map((filter) => <button key={filter} className={levelFilter === filter ? 'active' : ''} aria-pressed={levelFilter === filter} onClick={() => changeLevelFilter(filter)}>{filter === 'all' ? 'All levels' : filter}</button>)}
         </div>
+        <div className="filters vocabulary-status-filters" aria-label="Filter vocabulary by progress">
+          {statusFilters.map(([filter, label]) => <button key={filter} className={statusFilter === filter ? 'active' : ''} aria-pressed={statusFilter === filter} onClick={() => changeStatusFilter(filter)}>{label} <span className="vocabulary-count">{statusCounts[filter]}</span></button>)}
+        </div>
       </div>
 
       <section className="vocabulary-practice" aria-label="Vocabulary practice games">
@@ -223,8 +277,8 @@ function VocabularyTab({
                 </> : <button className="secondary-button" onClick={() => setFlashcardRevealed(true)}>Reveal meaning</button>}
               </div>
               {flashcardRevealed && <div className="vocabulary-game-actions">
-                <button className="secondary-button" onClick={() => { setFlashcardIndex((index) => index + 1); setFlashcardRevealed(false) }}>Still learning</button>
-                <button className="primary-button" onClick={() => { setKnownCount((count) => count + 1); setFlashcardIndex((index) => index + 1); setFlashcardRevealed(false) }}>Know it</button>
+                <button className="secondary-button" onClick={() => { setStatus(currentFlashcard, 'learning'); setFlashcardIndex((index) => index + 1); setFlashcardRevealed(false) }}>Still learning</button>
+                <button className="primary-button" onClick={() => { setStatus(currentFlashcard, 'known'); setKnownCount((count) => count + 1); setFlashcardIndex((index) => index + 1); setFlashcardRevealed(false) }}>Know it</button>
               </div>}
             </> : <div className="vocabulary-game-result"><strong>Round complete</strong><p>You marked {knownCount} of {practiceEntries.length} cards as known.</p><button className="secondary-button" onClick={resetPractice}>Practice again</button></div>)}
 
@@ -246,11 +300,15 @@ function VocabularyTab({
                     key={option}
                     className={`${isCorrectChoice ? 'correct' : ''}${isIncorrectChoice ? ' incorrect' : ''}`}
                     disabled={answered}
-                    onClick={() => setQuizAnswers((current) => {
-                      const next = [...current]
-                      next[quizIndex] = { correct: option === currentQuizQuestion.answer, choice: option }
-                      return next
-                    })}
+                    onClick={() => {
+                      const correct = option === currentQuizQuestion.answer
+                      setQuizAnswers((current) => {
+                        const next = [...current]
+                        next[quizIndex] = { correct, choice: option }
+                        return next
+                      })
+                      setStatus(currentQuizQuestion.entry, correct ? 'known' : 'learning')
+                    }}
                   >{option}</button>
                 })}
               </div>
@@ -298,10 +356,13 @@ function VocabularyTab({
               </>}
               <span className="vocabulary-source">{entry.lessonTitle}</span>
             </button>
-            {renderAudioControl(entry)}
+            <div className="vocabulary-card-actions">
+              {(['new', 'learning', 'known'] as const).map((status) => <button key={status} className={`vocabulary-status-button ${status}${statusOf(entry) === status ? ' active' : ''}`} aria-pressed={statusOf(entry) === status} onClick={() => setStatus(entry, status)}>{status === 'new' ? 'New' : status === 'learning' ? 'Learning' : 'Known'}</button>)}
+              {renderAudioControl(entry)}
+            </div>
           </div>
         })}
-      </div> : <p className="vocabulary-empty">No vocabulary matches that search. Try another word, level, or topic.</p>}
+      </div> : <p className="vocabulary-empty">No vocabulary matches those filters. Try another word, level, topic, or progress filter.</p>}
       {pageCount > 1 && <nav className="vocabulary-pagination" aria-label="Vocabulary pages">
         <button className="secondary-button" disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Previous</button>
         <span>Page {page + 1} of {pageCount} · {pageEntries.length} entries shown</span>

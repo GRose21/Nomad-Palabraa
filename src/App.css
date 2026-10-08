@@ -534,3 +534,41 @@ main { grid-column: 2; min-width: 0; }
   .topbar .icon-button { flex: 0 0 42px; }
   .audio-dock { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
 }
+
+/* Vocabulary: text fitting, progress filters, and responsive fixes */
+.vocabulary-page { min-width: 0; }
+.vocabulary-controls { flex-wrap: wrap; align-items: flex-end; }
+.vocabulary-controls .filters { flex-wrap: wrap; max-width: 100%; }
+.vocabulary-status-filters { flex-basis: 100%; }
+.vocabulary-status-filters button { display: inline-flex; align-items: center; gap: 6px; }
+.vocabulary-count { min-width: 20px; box-sizing: border-box; padding: 1px 6px; white-space: nowrap; border-radius: 99px; background: rgba(0,0,0,.06); font-size: 9px; text-align: center; }
+.vocabulary-card { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.vocabulary-card > strong { overflow-wrap: anywhere; }
+.vocabulary-meta { flex-wrap: wrap; gap: 4px 10px; }
+.vocabulary-meta span { min-width: 0; overflow-wrap: anywhere; }
+.vocabulary-translation, .vocabulary-sense, .vocabulary-evidence, .vocabulary-source { overflow-wrap: anywhere; }
+.vocabulary-card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.vocabulary-card-actions .vocabulary-audio { margin-left: auto; }
+.vocabulary-status-button { padding: 5px 9px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); background: var(--card); font-size: 10px; font-weight: 700; }
+.vocabulary-status-button.active.new { border-color: var(--coral); color: var(--coral); }
+.vocabulary-status-button.active.learning { border-color: #d6a23a; color: #8a6414; background: #fff6df; }
+.vocabulary-status-button.active.known { border-color: #54a77d; color: #145b3a; background: #e3f4e9; }
+.vocabulary-flashcard { min-width: 0; }
+.vocabulary-flashcard > p, .vocabulary-flashcard > small { max-width: 100%; overflow-wrap: anywhere; }
+.vocabulary-game-controls select { width: 100%; max-width: 100%; text-overflow: ellipsis; }
+.vocabulary-game-progress { flex-wrap: wrap; }
+@media (max-width: 1050px) {
+  .vocabulary-game-controls { grid-template-columns: 1fr 1fr; }
+  .vocabulary-mode-picker { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .vocabulary-controls .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); width: 100%; }
+  .vocabulary-status-filters { grid-template-columns: 1fr 1fr; }
+  .vocabulary-controls .filters button { flex: none; padding: 8px 6px; white-space: normal; }
+  .vocabulary-game-controls { grid-template-columns: 1fr; }
+  .vocabulary-flashcard { padding: 16px 12px; }
+  .vocabulary-flashcard > strong, .vocabulary-quiz-question > strong { font-size: 22px; }
+  .vocabulary-pagination { flex-wrap: wrap; }
+  .question-count { align-self: flex-start; }
+}
+@media (max-width: 760px) { .topbar h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
