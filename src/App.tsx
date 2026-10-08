@@ -17,7 +17,7 @@ import CollegeCourseCard from './CollegeCourseCard'
 import AudioControl from './AudioControl'
 import AudioDock from './AudioDock'
 import ListeningTranscript from './ListeningTranscript'
-import { chooseSpeechVoice, rewindSpeechIndex, speechRate } from './speech'
+import { chooseSpeechVoice, rewindSpeechIndex, seekSpeechIndex, speechRate, speechSpeedMultiplier, type SpeechSpeed } from './speech'
 import CourseAssessmentPanel from './CourseAssessmentPanel'
 import { getNextCourseAssessmentMilestone } from './courseAssessmentSchedule'
 import { expandReadingContent } from './readingContent'
@@ -549,6 +549,16 @@ function App() {
   const speechBaseIndexRef = useRef(0)
   const speechPlaybackStatusRef = useRef<'idle' | 'playing' | 'paused'>('idle')
   const [speechPlaybackStatus, setSpeechPlaybackStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [speechSpeed, setSpeechSpeed] = useState<SpeechSpeed>(() => {
+    const stored = localStorage.getItem('nomad-audio-speed')
+    return stored === 'slow' || stored === 'fast' ? stored : 'normal'
+  })
+  const [speechVolume, setSpeechVolume] = useState(() => {
+    const stored = Number(localStorage.getItem('nomad-audio-volume') ?? 1)
+    return Number.isFinite(stored) ? Math.min(1, Math.max(0, stored)) : 1
+  })
+  const speechSpeedRef = useRef(speechSpeed)
+  const speechVolumeRef = useRef(speechVolume)
   const [activeSpeechText, setActiveSpeechText] = useState('')
   const [activeSpeechLanguage, setActiveSpeechLanguage] = useState('')
   const [speechCharIndex, setSpeechCharIndex] = useState(0)
@@ -1149,7 +1159,8 @@ function App() {
     const synthesis = window.speechSynthesis
     const utterance = new SpeechSynthesisUtterance(phrase.slice(startIndex))
     utterance.lang = language
-    utterance.rate = speechRate(language)
+    utterance.rate = speechRate(language, speechSpeedMultiplier(speechSpeedRef.current))
+    utterance.volume = speechVolumeRef.current
     const voice = chooseSpeechVoice(synthesis.getVoices(), language)
     if (voice) utterance.voice = voice
     speechUtteranceRef.current = utterance
@@ -1242,12 +1253,42 @@ function App() {
     startSpeechFrom(phrase, targetLanguageCode)
   }
 
+  const restartSpeechAt = (startIndex: number) => {
+    const phrase = activeSpeechTextRef.current
+    const language = activeSpeechLanguageRef.current
+    if (!phrase || !language || speechPlaybackStatusRef.current === 'idle') return
+    window.speechSynthesis.cancel()
+    speechUtteranceRef.current = null
+    startSpeechFrom(phrase, language, startIndex)
+  }
+
+  const changeSpeechSpeed = (speed: SpeechSpeed) => {
+    speechSpeedRef.current = speed
+    setSpeechSpeed(speed)
+    localStorage.setItem('nomad-audio-speed', speed)
+    if (speechPlaybackStatusRef.current !== 'idle') restartSpeechAt(speechCharIndexRef.current)
+  }
+
+  const changeSpeechVolume = (volume: number) => {
+    speechVolumeRef.current = volume
+    setSpeechVolume(volume)
+    localStorage.setItem('nomad-audio-volume', String(volume))
+    if (speechPlaybackStatusRef.current !== 'idle') restartSpeechAt(speechCharIndexRef.current)
+  }
+
+  const seekAudioPlayback = (seconds: number) => {
+    const phrase = activeSpeechTextRef.current
+    const language = activeSpeechLanguageRef.current
+    if (!phrase || assessmentAudioTextRef.current === phrase) return
+    restartSpeechAt(seekSpeechIndex(phrase, seconds, language, speechSpeedMultiplier(speechSpeedRef.current)))
+  }
+
   const rewindAudioPlayback = () => {
     const phrase = activeSpeechTextRef.current
     const language = activeSpeechLanguageRef.current
     if (!phrase || !language || speechPlaybackStatusRef.current === 'idle') return
     if (assessmentAudioTextRef.current === phrase) return
-    const targetIndex = rewindSpeechIndex(phrase, speechCharIndexRef.current, language)
+    const targetIndex = rewindSpeechIndex(phrase, speechCharIndexRef.current, language, 5, speechSpeedMultiplier(speechSpeedRef.current))
     if (targetIndex >= speechCharIndexRef.current) {
       showToast('Audio is still near the beginning.')
       return
@@ -1914,11 +1955,16 @@ function App() {
       {speechPlaybackStatus !== 'idle' && <AudioDock
         text={activeSpeechText}
         language={learningLanguage}
-        lang={targetLanguageCode}
-        direction={targetTextDirection}
+        langCode={activeSpeechLanguage || targetLanguageCode}
+        charIndex={speechCharIndex}
+        speed={speechSpeed}
+        volume={speechVolume}
         paused={speechPlaybackStatus === 'paused'}
         allowRewind={!assessmentAudioText || activeSpeechText !== assessmentAudioText}
-        canRewind={speechCharIndex > 0 && rewindSpeechIndex(activeSpeechText, speechCharIndex, activeSpeechLanguage) < speechCharIndex}
+        canRewind={speechCharIndex > 0 && rewindSpeechIndex(activeSpeechText, speechCharIndex, activeSpeechLanguage, 5, speechSpeedMultiplier(speechSpeed)) < speechCharIndex}
+        onSeek={seekAudioPlayback}
+        onSpeedChange={changeSpeechSpeed}
+        onVolumeChange={changeSpeechVolume}
         onToggle={() => playActivityPhrase(activeSpeechText)}
         onRewind={rewindAudioPlayback}
         onStop={stopAudioPlayback}

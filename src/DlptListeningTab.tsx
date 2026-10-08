@@ -4,7 +4,7 @@ import type { Resource } from './resourceCatalog'
 import type { dlptListeningTopics } from './dlptListening'
 import AudioControl from './AudioControl'
 import CourseLevelBadge from './CourseLevelBadge'
-import { ilrDisclaimer } from './ilr'
+import { ilrDisclaimer, ilrReference, stripCefrPrefix } from './ilr'
 import ListeningTranscript from './ListeningTranscript'
 
 type Topic = typeof dlptListeningTopics[number]
@@ -59,8 +59,8 @@ function DlptListeningTab({
       <div className="content lesson-view">
         <button className="back-button" type="button" onClick={() => setSelected(null)}>← All DLPT listening passages</button>
         <div className="lesson-hero">
-          <div><span className="eyebrow">DLPT-STYLE LISTENING · {selected.topic?.toLocaleUpperCase()}</span><h2>{selected.title}</h2><p>Listen to the report, then answer the comprehension question. The transcript unlocks after playback finishes.</p></div>
-          <CourseLevelBadge level={selected.level as CourseLevel} />
+          <div><span className="eyebrow">DLPT-STYLE LISTENING · {selected.topic?.toLocaleUpperCase()}</span><h2>{stripCefrPrefix(selected.title, selected.level as CourseLevel)}</h2><p>Listen to the report, then answer the comprehension question. The transcript unlocks after playback finishes.</p></div>
+          <CourseLevelBadge primary="ilr" level={selected.level as CourseLevel} />
         </div>
         <article className="reading-panel dlpt-listening-panel">
           <div className="reading-text">
@@ -131,8 +131,8 @@ function DlptListeningTab({
       </div>
       <p className="ilr-disclaimer">{ilrDisclaimer}</p>
       <div className="dlpt-filters" aria-label="Filter DLPT listening passages">
-        <div className="filters" aria-label="Filter by CEFR level">
-          {(['all', ...levels] as const).map((level) => <button key={level} type="button" className={levelFilter === level ? 'active' : ''} onClick={() => setLevelFilter(level)}>{level === 'all' ? 'All levels' : level}</button>)}
+        <div className="filters" aria-label="Filter by ILR level">
+          {(['all', ...levels] as const).map((level) => <button key={level} type="button" className={levelFilter === level ? 'active' : ''} onClick={() => setLevelFilter(level)}>{level === 'all' ? 'All levels' : ilrReference[level]}</button>)}
         </div>
         <div className="filters" aria-label="Filter by topic">
           {(['all', ...topics] as const).map((topic) => <button key={topic} type="button" className={topicFilter === topic ? 'active' : ''} onClick={() => setTopicFilter(topic)}>{topic === 'all' ? 'All topics' : topic}</button>)}
@@ -148,7 +148,7 @@ function DlptListeningTab({
           }}>
             <div className="resource-art listening"><span>♫</span></div>
             <div>
-              <div className="resource-meta"><span>{resource.topic}</span><CourseLevelBadge level={resource.level as CourseLevel} /></div>
+              <div className="resource-meta"><span>{resource.topic}</span><CourseLevelBadge primary="ilr" level={resource.level as CourseLevel} /></div>
               <h3>{resource.title.replace(`${resource.level} `, '')}</h3>
               <p>{resource.description}</p>
               <div className="resource-footer"><small>{resource.comprehension?.length ?? 0} comprehension question</small><span className="resource-open">Listen & practise →</span></div>

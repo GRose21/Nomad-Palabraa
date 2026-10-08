@@ -10,7 +10,11 @@ export const ilrReference: Record<CourseLevel, string> = {
   C2: 'ILR 3+–4',
 }
 
-export const ilrDisclaimer = 'CEFR and ILR are distinct frameworks. These approximate reading-level references are a study guide only; they do not predict or certify a DLPT score.'
+export const ilrDisclaimer = 'ILR and CEFR are distinct frameworks. These approximate level references are a study guide only; they do not predict or certify a DLPT score.'
+
+export function stripCefrPrefix(title: string, level: CourseLevel) {
+  return title.startsWith(`${level} `) ? title.slice(level.length + 1) : title
+}
 
 export function formatCourseLevel(level: CourseLevel) {
   return `${level} · ${ilrReference[level]}`
