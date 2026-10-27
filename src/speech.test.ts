@@ -49,3 +49,14 @@ test('seeks to a word boundary near the requested time', () => {
   assert.equal(seekSpeechIndex(passage, 0, 'es-ES'), 0)
   assert.equal(seekSpeechIndex(passage, 9999, 'es-ES'), passage.length)
 })
+
+test('avoids compact and novelty voices and prefers neural or premium voices', () => {
+  const voices = [
+    { name: 'Albert', lang: 'it-IT', default: true },
+    { name: 'Alice (Compact)', lang: 'it-IT', default: false },
+    { name: 'Alice (Premium)', lang: 'it-IT', default: false },
+    { name: 'Microsoft Elsa Online (Natural)', lang: 'it-IT', default: false, localService: false },
+  ]
+  assert.equal(chooseSpeechVoice(voices, 'it-IT')?.name, 'Microsoft Elsa Online (Natural)')
+  assert.equal(chooseSpeechVoice(voices.slice(0, 3), 'it-IT')?.name, 'Alice (Premium)')
+})

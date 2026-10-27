@@ -1,19 +1,27 @@
-type SpeechVoice = Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>
+type SpeechVoice = Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'> & Partial<Pick<SpeechSynthesisVoice, 'localService'>>
+
+const novelty = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|junior|organ|princess|ralph|trinoids|whisper|wobble|zarvox|fred|superstar|jester)\b/i
+
+export function scoreSpeechVoice(voice: SpeechVoice, normalizedLanguage: string) {
+  const name = voice.name
+  let score = voice.lang.toLocaleLowerCase().replace('_', '-') === normalizedLanguage ? 4 : 0
+  if (/neural|natural|online/i.test(name)) score += 6
+  else if (/premium|enhanced|siri/i.test(name)) score += 5
+  else if (/google/i.test(name)) score += 3
+  else if (/microsoft/i.test(name)) score += 2
+  if (voice.localService === false) score += 1
+  if (/compact|espeak|eloquence|novelty/i.test(name) || novelty.test(name)) score -= 10
+  if (voice.default) score += 1
+  return score
+}
 
 export function chooseSpeechVoice<T extends SpeechVoice>(voices: readonly T[], language: string): T | undefined {
-  const normalizedLanguage = language.toLocaleLowerCase()
+  const normalizedLanguage = language.toLocaleLowerCase().replace('_', '-')
   const baseLanguage = normalizedLanguage.split('-')[0]
-  const matchingVoices = voices.filter((voice) => voice.lang.toLocaleLowerCase().split('-')[0] === baseLanguage)
+  const matchingVoices = voices.filter((voice) => voice.lang.toLocaleLowerCase().replace('_', '-').split('-')[0] === baseLanguage)
 
   return matchingVoices
-    .map((voice) => {
-      const voiceLanguage = voice.lang.toLocaleLowerCase()
-      const naturalVoice = /natural|enhanced|premium|neural|siri|google|microsoft/i.test(voice.name)
-      const score = (voiceLanguage === normalizedLanguage ? 4 : 0)
-        + (naturalVoice ? 3 : 0)
-        + (voice.default ? 1 : 0)
-      return { voice, score }
-    })
+    .map((voice) => ({ voice, score: scoreSpeechVoice(voice, normalizedLanguage) }))
     .sort((first, second) => second.score - first.score)[0]?.voice
 }
 

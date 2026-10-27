@@ -582,3 +582,38 @@ main { grid-column: 2; min-width: 0; }
 .audio-dock input[type="range"] { width: 100%; min-width: 0; accent-color: var(--green); cursor: pointer; }
 .audio-dock input[type="range"]:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 760px) { .audio-dock { left: 12px; width: auto; } .audio-dock-volume { max-width: none; } }
+
+.assessment-review { margin: 18px 0; text-align: left; width: 100%; }
+.assessment-review h4 { margin: 0 0 10px; }
+.assessment-review ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.review-item { border: 1px solid var(--line, #d9dee8); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; }
+.review-item p { margin: 4px 0 0; }
+.review-item.correct { border-color: #86c9a0; background: rgba(46, 160, 100, 0.08); }
+.review-item.wrong { border-color: #e29a9a; background: rgba(210, 70, 70, 0.08); }
+.review-item.wrong p:first-of-type { color: #b03a3a; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.writing-setup { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px; }
+.writing-modes { display: flex; flex-wrap: wrap; gap: 8px; }
+.writing-level { display: grid; gap: 4px; font-size: 0.85rem; }
+.writing-card { background: var(--surface, #fff); border: 1px solid var(--line, #d9dee8); border-radius: 16px; padding: 20px; max-width: 760px; }
+.writing-prompt { overflow-wrap: anywhere; font-size: 1.4rem; margin: 14px 0 6px; }
+.writing-hint { margin: 0 0 12px; opacity: 0.8; }
+.writing-form { display: flex; flex-wrap: wrap; gap: 10px; }
+.writing-input { flex: 1 1 220px; min-width: 0; font-size: 1.2rem; padding: 12px 14px; border: 2px solid var(--line, #cfd6e4); border-radius: 12px; }
+.writing-feedback { margin-top: 14px; padding: 12px 14px; border-radius: 12px; overflow-wrap: anywhere; }
+.writing-feedback p { margin: 4px 0 0; }
+.writing-feedback.correct { background: rgba(46, 160, 100, 0.12); }
+.writing-feedback.wrong { background: rgba(210, 70, 70, 0.12); }
+.writing-review { padding-left: 20px; display: grid; gap: 10px; overflow-wrap: anywhere; }
+.writing-review p { margin: 2px 0 0; }
+.onscreen-keyboard { margin-top: 14px; padding: 10px; background: rgba(120, 130, 160, 0.12); border-radius: 12px; display: grid; gap: 6px; }
+.keyboard-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+.keyboard-row button { min-width: 38px; height: 44px; padding: 0 8px; font-size: 1.15rem; border: 1px solid var(--line, #cfd6e4); border-radius: 8px; background: #fff; color: inherit; cursor: pointer; }
+.keyboard-row button:hover, .keyboard-row button:focus-visible { background: #eef2ff; }
+.keyboard-row button.wide { flex: 1 1 140px; }
+.character-bank button { min-width: 48px; height: 52px; font-size: 1.4rem; }
+@media (max-width: 520px) {
+  .keyboard-row button { min-width: 30px; height: 42px; padding: 0 5px; font-size: 1.05rem; }
+  .writing-card { padding: 14px; }
+}

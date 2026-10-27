@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { getActivityScore, getDailyMinutes, getLevelFromScore, getStreak, getWeekDays, type Level } from './learning'
 import { grammarLessons, grammarLevels } from './grammar'
 import { courseLevelInfo, courseLevels, lessonSupport, starterLessons, supplementalLessons, type CourseLevel, type LessonSupport } from './learnCourse'
-import { assessmentQuestions } from './assessment'
+import { assessmentQuestions, buildAssessmentSession } from './assessment'
 import { activityCards } from './practice'
 import { getVocabulary } from './vocabulary'
 import { getDlptVocabulary } from './dlptVocabulary'
@@ -24,13 +24,14 @@ import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
+import WritingTab from './WritingTab'
 import DlptTab from './DlptTab'
 import DlptListeningTab from './DlptListeningTab'
 import { supabase } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'resources' | 'play' | 'dlpt' | 'dlpt-listening' | 'progress' | 'feedback'
+type Page = 'dashboard' | 'assessment' | 'learn' | 'grammar' | 'vocabulary' | 'writing' | 'resources' | 'play' | 'dlpt' | 'dlpt-listening' | 'progress' | 'feedback'
 type FeedbackCategory = 'bug' | 'recommendation' | 'other'
 
 const levelData: Record<Level, { label: string; title: string; description: string; progress: number }> = {
@@ -304,6 +305,7 @@ const navItems: Array<{ id: Page; label: string; icon: string }> = [
   { id: 'learn', label: 'Learn', icon: '◈' },
   { id: 'grammar', label: 'Grammar', icon: '文' },
   { id: 'vocabulary', label: 'Vocabulary', icon: 'Aa' },
+  { id: 'writing', label: 'Writing', icon: '✎' },
   { id: 'resources', label: 'Resources', icon: '▤' },
   { id: 'play', label: 'Play & practice', icon: '▶' },
   { id: 'dlpt', label: 'DLPT reading', icon: '▤' },
@@ -318,6 +320,7 @@ const pageTitles: Record<Page, string> = {
   learn: 'Learn Spanish',
   grammar: 'Spanish grammar',
   vocabulary: 'Spanish vocabulary',
+  writing: 'Writing practice',
   resources: 'Study library',
   play: 'Play & practice',
   dlpt: 'DLPT-style reading practice',
@@ -508,6 +511,7 @@ function App() {
   )
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
+  const [assessmentSession, setAssessmentSession] = useState(() => ({ bank: activeAssessmentQuestions, questions: buildAssessmentSession(activeAssessmentQuestions) }))
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [score, setScore] = useState(() =>
     typeof storedState.score === 'number'
@@ -1065,6 +1069,7 @@ function App() {
   }
 
   const startAssessment = () => {
+    setAssessmentSession({ bank: activeAssessmentQuestions, questions: buildAssessmentSession(activeAssessmentQuestions) })
     setQuestionIndex(0)
     setAnswers([])
     setSelectedAnswer(null)
@@ -1081,12 +1086,12 @@ function App() {
   }
 
   const nextQuestion = () => {
-    if (questionIndex < activeAssessmentQuestions.length - 1) {
+    if (questionIndex < assessmentSession.questions.length - 1) {
       const nextIndex = questionIndex + 1
       setQuestionIndex(nextIndex)
       setSelectedAnswer(answers[nextIndex] ?? null)
     } else {
-      const result = answers.reduce((total, answer, index) => total + (answer === activeAssessmentQuestions[index].correctIndex ? 1 : 0), 0)
+      const result = answers.reduce((total, answer, index) => total + (answer === assessmentSession.questions[index].correctIndex ? 1 : 0), 0)
       const estimatedLevel = getLevelFromScore(result)
       setScore(result)
       setLevel(estimatedLevel)
@@ -1096,12 +1101,12 @@ function App() {
   }
 
   const finishAssessment = () => {
-    const result = getActivityScore(answers, activeAssessmentQuestions.map((question) => question.correctIndex))
+    const result = getActivityScore(answers, assessmentSession.questions.map((question) => question.correctIndex))
     setScore(result)
     const estimatedLevel = getLevelFromScore(result)
     setLevel(estimatedLevel)
     setAssessmentCompleted(true)
-    setQuestionIndex(activeAssessmentQuestions.length)
+    setQuestionIndex(assessmentSession.questions.length)
   }
 
   const openResource = (resource: Resource) => {
@@ -1145,8 +1150,12 @@ function App() {
     setSpeechCharIndex(0)
   }
 
-  useEffect(() => () => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return undefined
+    const synthesis = window.speechSynthesis
+    // Browsers load their voice list lazily; touching it early lets the best voice be chosen on first play.
+    synthesis.getVoices()
+    return () => synthesis.cancel()
   }, [])
 
   useEffect(() => {
@@ -1441,13 +1450,17 @@ function App() {
 
     setFeedbackBusy(true)
     try {
-      const { error } = await supabase.from('user_feedback').insert({
-        category: feedbackCategory,
-        message,
-        language: learningLanguage,
-        page,
-        user_id: userId,
-      })
+      const record = { category: feedbackCategory, message, language: learningLanguage, page, user_id: userId }
+      let { error } = await supabase.from('user_feedback').insert(record)
+      // Older databases only allow Spanish/Italian and the original tabs; keep the context in the message instead of losing the report.
+      if (error?.code === '23514') {
+        ({ error } = await supabase.from('user_feedback').insert({
+          ...record,
+          message: `[Language: ${learningLanguage} | Page: ${page}] ${message}`.slice(0, 5000),
+          language: 'Spanish',
+          page: 'feedback',
+        }))
+      }
       if (error) {
         setFeedbackError(`Could not submit your feedback: ${error.message}`)
         return
@@ -1495,8 +1508,16 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const currentQuestion = activeAssessmentQuestions[questionIndex]
-  const progress = Math.min(100, ((questionIndex + 1) / activeAssessmentQuestions.length) * 100)
+  if (assessmentSession.bank !== activeAssessmentQuestions) {
+    setAssessmentSession({ bank: activeAssessmentQuestions, questions: buildAssessmentSession(activeAssessmentQuestions) })
+  }
+  const sessionQuestions = assessmentSession.questions
+  const currentQuestion = sessionQuestions[questionIndex]
+  const progress = Math.min(100, ((questionIndex + 1) / sessionQuestions.length) * 100)
+  const assessmentReview = answers.length === sessionQuestions.length
+    ? sessionQuestions.map((question, index) => ({ question, chosen: answers[index], correct: answers[index] === question.correctIndex }))
+    : []
+  const missedQuestions = assessmentReview.filter((item) => !item.correct)
   const speakingPromptCards = [
     selectedSupport?.speakingPrompt,
     ...((selectedSupport?.vocabulary ?? []).slice(0, 2).map((word) => `Use “${word.spanish}” in a new sentence of your own.`)),
@@ -1609,15 +1630,15 @@ function App() {
 
         {page === 'assessment' && (
           <div className="content">
-            <div className="section-heading"><div><span className="eyebrow">CEFR ASSESSMENT</span><h2>Find your starting point</h2><p>Answer {activeAssessmentQuestions.length} questions across vocabulary, grammar, and comprehension. Your results guide your study plan.</p></div><span className="question-count">{questionIndex < activeAssessmentQuestions.length ? `Question ${questionIndex + 1} of ${activeAssessmentQuestions.length}` : 'Assessment complete'}</span></div>
+            <div className="section-heading"><div><span className="eyebrow">CEFR ASSESSMENT</span><h2>Find your starting point</h2><p>Answer {sessionQuestions.length} questions across vocabulary, grammar, and comprehension. Your results guide your study plan.</p></div><span className="question-count">{questionIndex < sessionQuestions.length ? `Question ${questionIndex + 1} of ${sessionQuestions.length}` : 'Assessment complete'}</span></div>
             <div className="quiz-card">
               <div className="quiz-meta"><span>LEVEL CHECK</span><span>{Math.round(progress)}%</span></div>
               <div className="quiz-progress"><span style={{ width: `${progress}%` }} /></div>
-              {questionIndex < activeAssessmentQuestions.length ? (
+              {questionIndex < sessionQuestions.length ? (
                 <div className="question-view">
                   <h3>{currentQuestion.prompt}</h3>
                   <div className="answer-list">{currentQuestion.answers.map((answer, index) => <button key={answer} lang={targetLanguageCode} dir={targetTextDirection} className={selectedAnswer === index ? 'answer selected' : 'answer'} onClick={() => chooseAnswer(index)}><span>{String.fromCharCode(65 + index)}</span>{answer}</button>)}</div>
-                  <div className="quiz-actions"><button className="secondary-button" disabled={questionIndex === 0} onClick={() => { const previousIndex = Math.max(0, questionIndex - 1); setQuestionIndex(previousIndex); setSelectedAnswer(answers[previousIndex] ?? null) }}>← Previous</button><button className="primary-button" disabled={selectedAnswer === null} onClick={questionIndex === activeAssessmentQuestions.length - 1 ? finishAssessment : nextQuestion}>Next question →</button></div>
+                  <div className="quiz-actions"><button className="secondary-button" disabled={questionIndex === 0} onClick={() => { const previousIndex = Math.max(0, questionIndex - 1); setQuestionIndex(previousIndex); setSelectedAnswer(answers[previousIndex] ?? null) }}>← Previous</button><button className="primary-button" disabled={selectedAnswer === null} onClick={questionIndex === sessionQuestions.length - 1 ? finishAssessment : nextQuestion}>Next question →</button></div>
                 </div>
               ) : (
                 <div className="result-view">
@@ -1625,7 +1646,21 @@ function App() {
                   <span className="eyebrow">ASSESSMENT COMPLETE</span>
                   <h3>{currentLevel?.title ?? 'Assessment complete'}</h3>
                   {level && <CourseLevelBadge level={level} />}
-                  <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {activeAssessmentQuestions.length}. Your study plan is now tailored to this starting point.</p>
+                  <p>{currentLevel?.description ?? 'Your results are ready.'} Your score was {score} out of {sessionQuestions.length}. Your study plan is now tailored to this starting point.</p>
+                  {assessmentReview.length > 0 && (
+                    <section className="assessment-review" aria-label="Answer review">
+                      <h4>Your answers: {assessmentReview.length - missedQuestions.length} correct, {missedQuestions.length} to review</h4>
+                      <ol>
+                        {assessmentReview.map(({ question, chosen, correct }, index) => (
+                          <li key={question.prompt} className={correct ? 'review-item correct' : 'review-item wrong'}>
+                            <strong><span aria-hidden="true">{correct ? '✓' : '✗'}</span> <span className="sr-only">{correct ? 'Correct: ' : 'Incorrect: '}</span>{index + 1}. {question.prompt}</strong>
+                            {!correct && <p lang={targetLanguageCode} dir={targetTextDirection}>Your answer: {question.answers[chosen] ?? 'No answer'}</p>}
+                            <p lang={targetLanguageCode} dir={targetTextDirection}>Correct answer: {question.answers[question.correctIndex]}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  )}
                   <button className="primary-button" onClick={() => navigate('learn')}>View my plan →</button>
                 </div>
               )}
@@ -1765,6 +1800,7 @@ function App() {
 
         {page === 'grammar' && <GrammarTab key={`${grammarTabKey}-${learningLanguage}`} completedLessons={completedGrammarLessons} onComplete={completeGrammarLesson} lessons={activeGrammarLessons} levels={activeGrammarLevels} language={learningLanguage} />}
 
+        {page === 'writing' && <WritingTab key={learningLanguage} entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} langCode={targetLanguageCode} dir={targetTextDirection} speechStatus={speechPlaybackStatus} activeSpeechText={activeSpeechText} activeSpeechLanguage={activeSpeechLanguage} onSpeak={playActivityPhrase} />}
         {page === 'vocabulary' && <VocabularyTab key={learningLanguage} entries={activeVocabulary} levels={activeCourseLevels} language={learningLanguage} speechStatus={speechPlaybackStatus} activeSpeechText={activeSpeechText} activeSpeechLanguage={activeSpeechLanguage} onSpeak={playActivityPhrase} />}
 
         {page === 'resources' && (

@@ -105,10 +105,10 @@ const extensions: Record<AddedLanguage, LevelExtensions> = {
       title: 'Measure words and noun phrases',
       summary: 'Choose common measure words and keep modifiers in a clear noun phrase.',
       explanation: 'Mandarin count nouns commonly require a measure word between a number or demonstrative and the noun. The measure word classifies the item; it is learned with the noun rather than translated mechanically.',
-      examples: ['一本书 (yì běn shū) — one book', '这两张票 (zhè liǎng zhāng piào) — these two tickets'],
+      examples: ['一本书 — one book', '这两张票 — these two tickets'],
       applicationHeading: 'Build phrases with 的',
       application: '的 links a modifier to a noun. It can mark possession or describe which person or thing is meant.',
-      applicationExamples: ['我的老师 (wǒ de lǎoshī) — my teacher', '安娜买的书 (Ānnà mǎi de shū) — the book Anna bought'],
+      applicationExamples: ['我的老师 — my teacher', '安娜买的书 — the book Anna bought'],
       exercises: [
         { prompt: 'Choose the natural phrase for “three books.”', options: ['三个书', '三本书', '三书个'], answer: 1, explanation: '本 is the common measure word for books.' },
         { prompt: 'Which phrase means “these two tickets”?', options: ['这两张票', '这两个票', '两票这张'], answer: 0, explanation: '张 is commonly used with flat items such as tickets.' },

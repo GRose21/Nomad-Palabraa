@@ -4,7 +4,9 @@ export type AssessmentQuestion = {
   correctIndex: number
 }
 
-export const assessmentQuestions: AssessmentQuestion[] = [
+import { spanishExtraAssessmentQuestions } from './assessmentExtra.ts'
+
+const coreAssessmentQuestions: AssessmentQuestion[] = [
   { prompt: 'What does “Yo soy Ana” mean?', answers: ['I am Ana', 'I am from Ana', 'Ana is me', 'I have Ana'], correctIndex: 0 },
   { prompt: 'Which word means “book”?', answers: ['Un libro', 'Una casa', 'Una taza', 'Un coche'], correctIndex: 0 },
   { prompt: 'Which sentence means “I am learning Spanish”?', answers: ['Estoy aprendiendo español', 'Aprendo Spanish', 'Soy español', 'Aprendí español'], correctIndex: 0 },
@@ -24,3 +26,39 @@ export const assessmentQuestions: AssessmentQuestion[] = [
   { prompt: 'Which phrase best expresses “Although the evidence is limited, the pattern is clear” as an accepted fact?', answers: ['Aunque las pruebas son limitadas, el patrón está claro', 'Aunque las pruebas sean limitadas, el patrón estaba claro', 'Si las pruebas fueran limitadas, el patrón sería claro', 'Las pruebas para el patrón'], correctIndex: 0 },
   { prompt: 'Choose a natural formal sentence emphasizing who made the decision.', answers: ['Fue el comité quien tomó la decisión', 'El comité fue la decisión tomada', 'Quien la decisión el comité tomó'], correctIndex: 0 },
 ]
+
+export const assessmentQuestions: AssessmentQuestion[] = [...coreAssessmentQuestions, ...spanishExtraAssessmentQuestions]
+
+const tiersPerBlock = 6
+const questionsPerTier = 3
+const blockSize = tiersPerBlock * questionsPerTier
+
+function shuffled<T>(items: readonly T[], random: () => number): T[] {
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1))
+    ;[result[index], result[swap]] = [result[swap], result[index]]
+  }
+  return result
+}
+
+export function shuffleAssessmentAnswers(question: AssessmentQuestion, random: () => number = Math.random): AssessmentQuestion {
+  const order = shuffled(question.answers.map((_, index) => index), random)
+  return {
+    ...question,
+    answers: order.map((index) => question.answers[index]),
+    correctIndex: order.indexOf(question.correctIndex),
+  }
+}
+
+// The bank is laid out in blocks of 18: three questions for each CEFR level, easiest first.
+// A session draws three random questions per level and shuffles their answer order.
+export function buildAssessmentSession(bank: AssessmentQuestion[], random: () => number = Math.random): AssessmentQuestion[] {
+  if (bank.length % blockSize !== 0) return bank.map((question) => shuffleAssessmentAnswers(question, random))
+  const session: AssessmentQuestion[] = []
+  for (let tier = 0; tier < tiersPerBlock; tier += 1) {
+    const candidates = bank.filter((_, index) => Math.floor((index % blockSize) / questionsPerTier) === tier)
+    session.push(...shuffled(candidates, random).slice(0, questionsPerTier).map((question) => shuffleAssessmentAnswers(question, random)))
+  }
+  return session
+}

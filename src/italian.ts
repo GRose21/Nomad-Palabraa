@@ -1,4 +1,5 @@
 import type { AssessmentQuestion } from './assessment'
+import { italianExtraAssessmentQuestions } from './assessmentExtra.ts'
 import type { PracticeActivity } from './practice'
 import type { GrammarLesson } from './grammar'
 import { buildExpandedLessons } from './curriculumExpansion.ts'
@@ -248,7 +249,7 @@ export const italianLessonContent: Record<string, { label: string; text: string;
   }]),
 ])
 
-export const italianAssessmentQuestions: AssessmentQuestion[] = [
+const coreItalianAssessmentQuestions: AssessmentQuestion[] = [
   { prompt: 'What does “Mi chiamo Anna” mean?', answers: ['My name is Anna', 'I am from Anna', 'I have Anna', 'Anna is here'], correctIndex: 0 },
   { prompt: 'Which phrase means “the book”?', answers: ['il libro', 'la casa', 'una strada', 'un tavolo'], correctIndex: 0 },
   { prompt: 'How do you say “I am learning Italian”?', answers: ['Sto imparando l’italiano', 'Sono italiano', 'Imparo ieri', 'Ho italiano'], correctIndex: 0 },
@@ -268,6 +269,8 @@ export const italianAssessmentQuestions: AssessmentQuestion[] = [
   { prompt: 'Choose “Although the evidence is limited, the pattern is clear.”', answers: ['Benché le prove siano limitate, il quadro è chiaro', 'Se le prove erano limitate, il quadro era', 'Le prove per il quadro', 'Benché le prove limitate'], correctIndex: 0 },
   { prompt: 'Choose the natural emphatic sentence.', answers: ['È il comitato ad aver preso la decisione', 'Il comitato è la decisione presa', 'Chi la decisione comitato'], correctIndex: 0 },
 ]
+
+export const italianAssessmentQuestions: AssessmentQuestion[] = [...coreItalianAssessmentQuestions, ...italianExtraAssessmentQuestions]
 
 export const italianActivityCards: PracticeActivity[] = [
   { level: 'A1', icon: '◉', title: 'Choose the correct phrase', prompt: 'How do you say “I am from Italy” in Italian?', audioPhrase: 'Sono italiano', options: ['Sono italiano', 'Sto italiano', 'Vivo Italia', 'Ho italiano'], answer: 0 },

@@ -83,7 +83,7 @@ test('provides companion video resources and comprehension at every Italian CEFR
 })
 
 test('provides Italian assessment, practice, and course vocabulary', () => {
-  assert.equal(italianAssessmentQuestions.length, 18)
+  assert.equal(italianAssessmentQuestions.length, 36)
   assert.equal(italianActivityCards.length, 22)
   assert.ok(italianActivityCards.some((activity) => activity.level === 'Pre-A1'))
   assert.ok(italianActivityCards.some((activity) => activity.level === 'C2'))

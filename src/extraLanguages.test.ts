@@ -15,7 +15,7 @@ test('each added language includes ten lessons and level-matched videos across A
   for (const [language, pack] of Object.entries(additionalLanguagePacks)) {
     assert.equal(pack.starters.length, 3, `${language} should have three Pre-A1 starters`)
     assert.equal(pack.supplementalLessons.length, 60, `${language} should have sixty CEFR lessons`)
-    assert.equal(pack.assessmentQuestions.length, 18, `${language} should have a full assessment`)
+    assert.equal(pack.assessmentQuestions.length, 54, `${language} should have a full assessment`)
     assert.ok(pack.activityCards.length >= 12, `${language} should have practice activities`)
     for (const level of levels) {
       const lessons = pack.supplementalLessons.filter((lesson) => lesson.level === level)
@@ -34,15 +34,15 @@ test('each added language includes ten lessons and level-matched videos across A
   }
 })
 
-test('new language lessons include target-script text, pronunciation support, and answerable questions', () => {
+test('new language lessons include target-script text, no romanization, and answerable questions', () => {
   const samples = [
     additionalLanguagePacks['Mandarin Chinese'].supplementalLessons[0].vocabulary[0].spanish,
     additionalLanguagePacks['Modern Standard Arabic'].supplementalLessons[0].vocabulary[0].spanish,
     additionalLanguagePacks.Russian.supplementalLessons[0].vocabulary[0].spanish,
   ]
-  assert.match(samples[0], /你好.*nǐ hǎo/)
-  assert.match(samples[1], /مَرْحَبًا.*marḥaban/)
-  assert.match(samples[2], /Здравствуйте.*zdravstvuyte/)
+  assert.equal(samples[0], '你好')
+  assert.equal(samples[1], 'مَرْحَبًا')
+  assert.equal(samples[2], 'Здравствуйте')
 
   for (const pack of Object.values(additionalLanguagePacks)) {
     for (const lesson of pack.supplementalLessons) {
@@ -69,5 +69,17 @@ test('Arabic readings contain Arabic script only and DLPT resources cover all le
     const dlpt = pack.resources.filter((resource) => resource.source === 'DLPT-style practice')
     assert.equal(dlpt.length, 6)
     assert.ok(dlpt.every((resource) => resource.comprehension?.length === 4))
+  }
+})
+
+test('non-Latin language content uses only the native script', () => {
+  const romanized = /[\u0400-\u04FF\u4e00-\u9fff\u0600-\u06FF]\s*\([^)]*[A-Za-z][^)]*\)/
+  for (const pack of Object.values(additionalLanguagePacks)) {
+    for (const lesson of pack.supplementalLessons) {
+      assert.doesNotMatch(lesson.vocabulary[0].spanish, /[A-Za-z]/)
+    }
+    for (const question of pack.assessmentQuestions) {
+      for (const answer of question.answers) assert.doesNotMatch(answer, romanized)
+    }
   }
 })
