@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { grammarLessons as defaultLessons, grammarLevels as defaultLevels, type GrammarLesson, type GrammarLevel } from './grammar'
 import CollegeCourseCard from './CollegeCourseCard'
+import { GrammarGlossary, KeyTerms } from './GlossaryPanel'
 
 type GrammarTabProps = {
   completedLessons: string[]
@@ -70,6 +71,7 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
           <span className="question-count">{completedSet.size} of {lessons.length} lessons complete</span>
         </div>
         <p className="college-path-disclaimer">The year and semester labels describe a typical progression, not college credit or a formal placement determination.</p>
+        <GrammarGlossary language={language} langCode={targetLanguageCode} dir={targetDirection} />
         <div className="grammar-overall-progress" aria-label={`${completedSet.size} of ${lessons.length} grammar lessons complete`}>
           <span style={{ width: `${completedSet.size / lessons.length * 100}%` }} />
         </div>
@@ -124,6 +126,7 @@ function GrammarTab({ completedLessons, onComplete, lessons = defaultLessons, le
               <ul>{section.examples.map((example) => <li key={example} lang={targetLanguageCode} dir={targetDirection}>{example}</li>)}</ul>
             </section>
           ))}
+          <KeyTerms text={`${selectedLesson.title} ${selectedLesson.summary} ${selectedLesson.sections.map((section) => `${section.heading} ${section.explanation}`).join(' ')}`} language={language} langCode={targetLanguageCode} dir={targetDirection} />
         </article>
         <article className="grammar-quiz">
           <span className="eyebrow">PRACTICE</span>

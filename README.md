@@ -81,3 +81,9 @@ Cloudflare Pages can host the built Vite app on a public `*.pages.dev` URL:
 For a first setup, you can test the production build locally with `npm run build` and `npm run preview`. Hosting and authentication are subject to each provider's current free-plan limits.
 
 > The assessment is an educational estimate, not a formal CEFR certification. Resource availability may vary by region.
+
+## Textbook-style Learn tab
+
+- Lessons open as numbered chapters with a scene banner, emoji-illustrated vocabulary, a Culture Corner, and Part 1–5 sections.
+- Key Terms boxes define the grammar words a lesson uses (preterite, subjunctive, etc.), and the Grammar tab has a searchable glossary (`src/glossary.ts`).
+- Pictures are emoji-based, so no image assets are needed.

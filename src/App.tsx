@@ -25,6 +25,8 @@ import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import WritingTab from './WritingTab'
+import { KeyTerms, GrammarGlossary } from './GlossaryPanel'
+import { cultureNotes, emojiForGloss, sceneForLesson } from './pictures'
 import DlptTab from './DlptTab'
 import DlptListeningTab from './DlptListeningTab'
 import { supabase } from './supabase'
@@ -1687,22 +1689,37 @@ function App() {
                 onExit={exitCourseAssessment}
               />
             ) : selectedPlan ? (
-              <div className="plan-lesson">
+              <div className="plan-lesson textbook">
                 <button className="back-button" onClick={() => setSelectedPlan(null)}>← Back to learning path</button>
-                <div className="section-heading"><div><span className="eyebrow">{selectedPlan.courseLevel} · {selectedPlan.minutes.toUpperCase()} LESSON</span><h2>{selectedPlan.title}</h2><p>{selectedSupport?.objective ?? selectedPlan.detail}</p></div><CourseLevelBadge level={selectedPlan.courseLevel} /></div>
+                <header className="chapter-banner">
+                  <div className="chapter-number"><small>CHAPTER</small><strong>{activeCoursePlans.findIndex((plan) => plan.id === selectedPlan.id) + 1}</strong></div>
+                  <div className="chapter-title">
+                    <span className="eyebrow">{selectedPlan.courseLevel} · {selectedPlan.minutes.toUpperCase()} LESSON</span>
+                    <h2>{selectedPlan.title}</h2>
+                    <p>{selectedSupport?.objective ?? selectedPlan.detail}</p>
+                    <div className="chapter-goals"><strong>In this chapter:</strong> vocabulary · grammar · reading · listening · speaking</div>
+                  </div>
+                  <div className="chapter-scene" aria-hidden="true">{sceneForLesson(selectedPlan.title, selectedPlan.courseLevel).map((icon) => <span key={icon}>{icon}</span>)}</div>
+                  <CourseLevelBadge level={selectedPlan.courseLevel} />
+                </header>
+                <aside className="culture-note">
+                  <span className="culture-tag">🌍 CULTURE CORNER</span>
+                  <p>{(cultureNotes[learningLanguage] ?? cultureNotes.Spanish)[Math.max(0, activeCoursePlans.findIndex((plan) => plan.id === selectedPlan.id)) % (cultureNotes[learningLanguage] ?? cultureNotes.Spanish).length]}</p>
+                </aside>
                 <div className="plan-lesson-grid">
                   <article className="learn-vocabulary">
-                    <span className="eyebrow">VOCABULARY · LEARN THESE FIRST</span>
-                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong><span>{word.english}</span><AudioControl phrase={word.spanish} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === word.spanish && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} /></div>)}</div>
+                    <span className="eyebrow">PART 1 · VOCABULARY · LEARN THESE FIRST</span>
+                    <div className="learn-vocabulary-grid">{selectedSupport?.vocabulary.map((word) => <div key={word.spanish}><span className="vocab-picture" aria-hidden="true">{emojiForGloss(word.english) ?? '📝'}</span><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong><span>{word.english}</span><AudioControl phrase={word.spanish} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === word.spanish && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} /></div>)}</div>
                   </article>
                   <article className="learn-grammar">
-                    <span className="eyebrow">GRAMMAR · ONE STEP AT A TIME</span>
+                    <span className="eyebrow">PART 2 · GRAMMAR · ONE STEP AT A TIME</span>
                     {selectedGrammarLesson ? (
                       <>
                         <h3>{selectedGrammarLesson.title}</h3>
                         <p className="learn-grammar-summary">{selectedGrammarLesson.summary}</p>
                         {selectedGrammarLesson.sections.map((section) => <section key={section.heading}><h4>{section.heading}</h4><p>{section.explanation}</p><ul>{section.examples.map((example) => <li key={example} lang={targetLanguageCode} dir={targetTextDirection}>{example}</li>)}</ul></section>)}
                         {selectedSupport?.grammarNote && <p className="learn-grammar-note"><strong>In this passage:</strong> {selectedSupport.grammarNote}</p>}
+                        <KeyTerms text={`${selectedGrammarLesson.title} ${selectedGrammarLesson.summary} ${selectedGrammarLesson.sections.map((section) => `${section.heading} ${section.explanation}`).join(' ')}`} language={learningLanguage} langCode={targetLanguageCode} dir={targetTextDirection} />
                       </>
                     ) : selectedStarter ? (
                       <>
@@ -1712,7 +1729,7 @@ function App() {
                     ) : null}
                   </article>
                   <article className="plan-material">
-                    <div className="plan-material-heading"><span className="reading-label">{selectedLessonContent?.label}</span>{selectedLessonContent && <AudioControl phrase={selectedLessonContent.text} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedLessonContent.text && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen to passage" />}</div>
+                    <div className="plan-material-heading"><span className="reading-label">PART 3 · {selectedLessonContent?.label}</span>{selectedLessonContent && <AudioControl phrase={selectedLessonContent.text} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === selectedLessonContent.text && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen to passage" />}</div>
                     <p className="learn-listening-prompt"><strong>Listening focus:</strong> {selectedSupport?.listeningPrompt}</p>
                     {selectedLessonContent && <ListeningTranscript
                       text={selectedLessonContent.text}
@@ -1724,7 +1741,7 @@ function App() {
                     />}
                   </article>
                   <article className="plan-comprehension">
-                    <span className="eyebrow">READING · CHECK YOUR UNDERSTANDING</span>
+                    <span className="eyebrow">PART 4 · READING · CHECK YOUR UNDERSTANDING</span>
                     <h3>Comprehension questions</h3>
                     {selectedLessonContent?.questions.map((question, questionIndex) => (
                       <div className="plan-question" key={question.prompt}>
@@ -1747,7 +1764,7 @@ function App() {
                       </div>}
                   </article>
                   <article className="speaking-practice">
-                    <span className="eyebrow">SPEAKING PRACTICE · NOT RECORDED</span>
+                    <span className="eyebrow">PART 5 · SPEAKING PRACTICE · NOT RECORDED</span>
                     <h3>Try saying these aloud in {learningLanguage}</h3>
                     <div className="speaking-prompt-grid">
                       {speakingPromptCards.map((prompt, index) => <p key={`${index}-${prompt}`}><span>{index + 1}</span>{prompt}</p>)}
@@ -1760,6 +1777,7 @@ function App() {
                 <div className="section-heading learn-course-heading"><div><span className="eyebrow">A COMPLETE {learningLanguage.toLocaleUpperCase()} LEARNING PATH</span><h2>Start from zero. Grow to C2.</h2><p>No prior {learningLanguage} required. Work through vocabulary, grammar, reading, listening, and speaking in every lesson. Begin at Pre‑A1 or jump to any level for review. CEFR levels include an approximate ILR reading reference.</p></div><span className="question-count">{completedLearnLessons.length} of {activeCoursePlans.length} lessons complete</span></div>
                 <p className="college-path-disclaimer">Organized as a college-style sequence from introductory study through an advanced capstone. Course-year labels are learning guides, not credit-bearing college equivalencies.</p>
                 <p className="ilr-disclaimer">{ilrDisclaimer}</p>
+                <GrammarGlossary language={learningLanguage} langCode={targetLanguageCode} dir={targetTextDirection} />
                 <div className="learn-overall-progress" aria-label={`${completedLearnLessons.length} of ${activeCoursePlans.length} course lessons complete`}><span style={{ width: `${completedLearnLessons.length / activeCoursePlans.length * 100}%` }} /></div>
                 <section className="checkpoint-card">
                   <div>
@@ -1784,6 +1802,7 @@ function App() {
                       const isComplete = completedLearnLessons.includes(item.id)
                       const isNext = nextLearnLesson?.id === item.id
                       return <article className={`course-plan-card${isComplete ? ' complete' : ''}${isNext ? ' next' : ''}`} key={item.id} onClick={() => startPlan(item)}>
+                        <div className="plan-card-art" aria-hidden="true">{sceneForLesson(item.title, item.courseLevel).map((icon) => <span key={icon}>{icon}</span>)}</div>
                         <span>{isComplete ? '✓ COMPLETE' : isNext ? 'START HERE' : `LESSON ${String(index + 1).padStart(2, '0')}`}</span>
                         <h4>{item.title}</h4>
                         <p>{item.detail}</p>

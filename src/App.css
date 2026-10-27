@@ -617,3 +617,55 @@ main { grid-column: 2; min-width: 0; }
   .keyboard-row button { min-width: 30px; height: 42px; padding: 0 5px; font-size: 1.05rem; }
   .writing-card { padding: 14px; }
 }
+
+/* Textbook-style lessons */
+.textbook .chapter-banner { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 22px; align-items: center; padding: 24px 26px; margin-bottom: 16px; border-radius: 18px; background: linear-gradient(135deg, #fff8e6 0%, #e9f5ef 100%); border: 2px solid #1d5c52; box-shadow: 6px 6px 0 rgba(29,92,82,.18); overflow: hidden; }
+.chapter-number { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: #1d5c52; color: #fff; text-align: center; }
+.chapter-number small { font-size: 9px; letter-spacing: 2px; margin-bottom: -10px; }
+.chapter-number strong { font: 800 34px/1 Georgia, serif; }
+.chapter-title h2 { margin: 4px 0 6px; font-family: Georgia, serif; overflow-wrap: anywhere; }
+.chapter-title p { margin: 0 0 8px; }
+.chapter-goals { font-size: 12px; color: #4a5f5a; }
+.chapter-scene { display: flex; gap: 8px; font-size: 40px; line-height: 1; }
+.chapter-banner .course-level-badge, .chapter-banner > :last-child:not(.chapter-scene) { grid-column: 2 / -1; }
+.culture-note { margin: 0 0 18px; padding: 14px 18px; border-left: 6px solid #e8a317; background: #fff8e6; border-radius: 0 12px 12px 0; }
+.culture-note p { margin: 6px 0 0; line-height: 1.55; }
+.culture-tag { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #8a5a00; }
+.textbook .learn-vocabulary, .textbook .learn-grammar, .textbook .plan-material, .textbook .plan-comprehension, .textbook .speaking-practice { border: 2px solid #d9d3bf; background: #fffdf7; border-radius: 6px 18px 6px 18px; position: relative; }
+.textbook .learn-vocabulary { border-top: 8px solid #2f8f7b; }
+.textbook .learn-grammar { border-top: 8px solid #d4572a; }
+.textbook .plan-material { border-top: 8px solid #3b6fc4; }
+.textbook .plan-comprehension { border-top: 8px solid #8a52c4; }
+.textbook .speaking-practice { border-top: 8px solid #e8a317; }
+.vocab-picture { font-size: 30px; line-height: 1; }
+.learn-vocabulary-grid > div { background: #fff; border: 1px dashed #cfd8d4; }
+.plan-card-art { display: flex; gap: 6px; font-size: 26px; margin-bottom: 8px; }
+.key-terms { margin-top: 16px; padding: 14px 16px; background: #eef5ff; border: 2px dashed #7aa2e0; border-radius: 12px; }
+.key-terms dl, .glossary-list { margin: 8px 0 0; display: grid; gap: 10px; }
+.key-terms dt, .glossary-list dt { font-weight: 800; color: #1d3f7a; }
+.key-terms dd, .glossary-list dd { margin: 2px 0 0; line-height: 1.5; font-size: 13px; overflow-wrap: anywhere; }
+.key-terms dd em, .glossary-list dd em { display: block; margin-top: 3px; color: #4a5f5a; }
+.glossary-card { margin: 14px 0; padding: 14px 18px; border: 2px solid #7aa2e0; border-radius: 14px; background: #f4f8ff; }
+.glossary-card summary { cursor: pointer; font-weight: 700; }
+.glossary-card summary .eyebrow { display: block; }
+.glossary-search { display: grid; gap: 4px; margin: 12px 0; font-size: 13px; }
+.glossary-search input { padding: 9px 12px; border: 1px solid #b9c8e6; border-radius: 10px; font-size: 15px; }
+.glossary-list { max-height: 420px; overflow: auto; }
+@media (max-width: 700px) {
+  .textbook .chapter-banner { grid-template-columns: auto minmax(0, 1fr); padding: 18px; }
+  .chapter-number { width: 64px; height: 64px; }
+  .chapter-number strong { font-size: 26px; }
+  .chapter-scene { grid-column: 1 / -1; font-size: 32px; }
+  .chapter-banner > :last-child:not(.chapter-scene) { grid-column: 1 / -1; }
+}
+.vocab-picture { font-size: 34px; }
+:root[data-theme='dark'] .textbook .chapter-banner { background: linear-gradient(135deg, #1d3a36, #17312f); border-color: var(--green); }
+:root[data-theme='dark'] .chapter-goals { color: var(--muted); }
+:root[data-theme='dark'] .culture-note { background: #3a2f12; }
+:root[data-theme='dark'] .culture-tag { color: #f0c36a; }
+:root[data-theme='dark'] .textbook .learn-vocabulary, :root[data-theme='dark'] .textbook .learn-grammar, :root[data-theme='dark'] .textbook .plan-material, :root[data-theme='dark'] .textbook .plan-comprehension, :root[data-theme='dark'] .textbook .speaking-practice { background: var(--card); border-color: var(--line); }
+:root[data-theme='dark'] .learn-vocabulary-grid > div { background: var(--paper); border-color: var(--line); }
+:root[data-theme='dark'] .key-terms, :root[data-theme='dark'] .glossary-card { background: #172a45; border-color: #4a6fa8; }
+:root[data-theme='dark'] .key-terms dt, :root[data-theme='dark'] .glossary-list dt { color: #a9c6f5; }
+:root[data-theme='dark'] .key-terms dd em, :root[data-theme='dark'] .glossary-list dd em { color: var(--muted); }
+:root[data-theme='dark'] .glossary-search input { background: var(--paper); color: var(--ink); border-color: var(--line); }
