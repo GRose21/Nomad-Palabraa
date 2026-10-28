@@ -47,7 +47,7 @@ export function sceneForLesson(title: string, level: string): string[] {
 export const cultureNotes: Record<string, string[]> = {
   Spanish: [
     'Spanish is the official language of 20 countries. Greetings often include a kiss on the cheek in Spain and much of Latin America.',
-    'In Spain lunch (la comida) is the main meal and is eaten around 2 p.m.; dinner is often after 9 p.m.',
+    'In Spain lunch (el almuerzo) is the main meal and is eaten around 2 p.m.; dinner is often after 9 p.m.',
     'Spanish speakers use tú for friends and usted for respect. In parts of Latin America vos replaces tú.',
     'Many Spanish cities hold a paseo, an evening stroll in the main square, to chat with neighbours.',
     'La Tomatina in Buñol, Spain, is a festival where thousands of people throw tomatoes at each other.',

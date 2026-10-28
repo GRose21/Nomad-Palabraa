@@ -1783,14 +1783,6 @@ function App() {
                       {speakingPromptCards.map((prompt, index) => <p key={`${index}-${prompt}`}><span>{index + 1}</span>{prompt}</p>)}
                     </div>
                     <div className="speaking-prep">
-                      <h4>Everything you need for this prompt</h4>
-                      <ol className="speaking-steps">
-                        <li><strong>Listen first.</strong> Play the Part 3 passage and follow along with the transcript.</li>
-                        <li><strong>Learn the key words</strong> below, and say each one aloud after the audio.</li>
-                        <li><strong>Borrow from the passage.</strong> Reuse the model lines, changing a name, place or detail to make them yours.</li>
-                        <li><strong>Say your answer aloud</strong> at a slow, steady pace. Say it twice: once reading, once from memory.</li>
-                        <li><strong>Check yourself.</strong> Did you cover every part of the prompt? Record yourself on your phone and compare it with the audio.</li>
-                      </ol>
                       {speakingModelLines.length > 0 && <div className="speaking-prep-block"><span className="eyebrow">MODEL LINES FROM THE PASSAGE</span>
                         {speakingModelLines.map((line) => <div className="speaking-line" key={line}><span lang={targetLanguageCode} dir={targetTextDirection}>{line}</span><AudioControl phrase={line} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === line && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen" /></div>)}
                       </div>}
