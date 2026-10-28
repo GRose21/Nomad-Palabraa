@@ -676,3 +676,12 @@ main { grid-column: 2; min-width: 0; }
 .chapter-scene { display: none; }
 :root[data-theme='dark'] .clipart { filter: brightness(.95); }
 @media (max-width: 700px) { .chapter-clipart { grid-column: 1 / -1; width: 100%; max-width: 320px; justify-self: center; } }
+.speaking-prep { margin-top: 18px; padding-top: 14px; border-top: 2px dashed #d9d3bf; }
+.speaking-prep h4 { margin: 0 0 8px; font-family: Georgia, serif; font-size: 16px; }
+.speaking-steps { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 5px; font-size: 13px; line-height: 1.5; }
+.speaking-prep-block { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--paper); }
+.speaking-prep-block p { margin: 6px 0 0; font-size: 13px; line-height: 1.55; }
+.speaking-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 14px; line-height: 1.5; }
+.speaking-line > span { min-width: 0; overflow-wrap: anywhere; }
+.speaking-line .audio-button { flex: 0 0 auto; }
+@media (max-width: 520px) { .speaking-line { flex-direction: column; align-items: flex-start; gap: 6px; } }

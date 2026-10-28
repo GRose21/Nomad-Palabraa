@@ -20,12 +20,13 @@ import ListeningTranscript from './ListeningTranscript'
 import { chooseSpeechVoice, rewindSpeechIndex, seekSpeechIndex, speechRate, speechSpeedMultiplier, type SpeechSpeed } from './speech'
 import CourseAssessmentPanel from './CourseAssessmentPanel'
 import { getNextCourseAssessmentMilestone } from './courseAssessmentSchedule'
-import { expandReadingContent } from './readingContent'
 import type { Resource } from './resourceCatalog'
 import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import WritingTab from './WritingTab'
 import { KeyTerms, GrammarGlossary } from './GlossaryPanel'
+import { expandReadingContent, getExtensionQuestions } from './readingContent'
+import { seededRandom, shuffleLessonQuestions, shuffleResourceQuestions } from './quizShuffle'
 import { LessonClipart, clipThemeForLesson, greetingWord } from './Clipart'
 import { cultureNotes, emojiForGloss, sceneForLesson } from './pictures'
 import DlptTab from './DlptTab'
@@ -445,7 +446,8 @@ function App() {
   const activeLessonContent: Record<string, LessonContent> = useMemo(() => Object.fromEntries(
     Object.entries(rawLessonContent).map(([title, content]) => {
       const courseLevel = activeCoursePlans.find((plan) => plan.title === title)?.courseLevel ?? 'A1'
-      return [title, { ...content, text: expandReadingContent(content.text, courseLevel, learningLanguage) }]
+      const text = expandReadingContent(content.text, courseLevel, learningLanguage)
+      return [title, { ...content, text, questions: [...content.questions, ...getExtensionQuestions(text, courseLevel, learningLanguage)] }]
     }),
   ), [rawLessonContent, activeCoursePlans, learningLanguage])
   const currentGrammarLessonIds = useMemo(() => new Set(activeGrammarLessons.map((lesson) => lesson.id)), [activeGrammarLessons])
@@ -549,6 +551,7 @@ function App() {
   const [selectedPlan, setSelectedPlan] = useState<CoursePlan | null>(null)
   const [planAnswers, setPlanAnswers] = useState<number[]>([])
   const [planAnswersChecked, setPlanAnswersChecked] = useState(false)
+  const [quizSeed, setQuizSeed] = useState(1)
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const activeSpeechTextRef = useRef('')
   const activeSpeechLanguageRef = useRef('')
@@ -1054,7 +1057,10 @@ function App() {
   const selectedGrammarLesson = selectedSupport?.grammarLessonId
     ? activeGrammarLessons.find((lesson) => lesson.id === selectedSupport.grammarLessonId)
     : undefined
-  const selectedLessonContent = selectedPlan ? activeLessonContent[selectedPlan.title] : undefined
+  const selectedLessonContent = useMemo(() => {
+    const content = selectedPlan ? activeLessonContent[selectedPlan.title] : undefined
+    return content ? { ...content, questions: shuffleLessonQuestions(content.questions, seededRandom(quizSeed)) } : undefined
+  }, [selectedPlan, activeLessonContent, quizSeed])
 
   const showToast = (message: string) => {
     setToast(message)
@@ -1114,7 +1120,7 @@ function App() {
 
   const openResource = (resource: Resource) => {
     stopAudioPlayback()
-    setSelectedResource(resource)
+    setSelectedResource(resource.comprehension ? { ...resource, comprehension: shuffleResourceQuestions(resource.comprehension) } : resource)
     setPassageAnswers([])
     setPassageScore(0)
     setPassageChecked(false)
@@ -1350,6 +1356,7 @@ function App() {
   const startPlan = (plan: CoursePlan) => {
     stopAudioPlayback()
     setSelectedPlan(plan)
+    setQuizSeed(Math.floor(Math.random() * 2 ** 32))
     setPlanAnswers([])
     setPlanAnswersChecked(false)
     setPage('learn')
@@ -1369,7 +1376,8 @@ function App() {
   const checkPlanAnswers = () => {
     if (!selectedPlan) return
     setPlanAnswersChecked(true)
-    const content = activeLessonContent[selectedPlan.title]
+    const content = selectedLessonContent
+    if (!content) return
     const score = content.questions.filter((question, index) => planAnswers[index] === question.answer).length
     if (score === content.questions.length) {
       setCompletedLearnLessons((current) => current.includes(selectedPlan.id) ? current : [...current, selectedPlan.id])
@@ -1521,6 +1529,9 @@ function App() {
     ? sessionQuestions.map((question, index) => ({ question, chosen: answers[index], correct: answers[index] === question.correctIndex }))
     : []
   const missedQuestions = assessmentReview.filter((item) => !item.correct)
+  const speakingModelLines = (selectedPlan ? rawLessonContent[selectedPlan.title]?.text ?? '' : '')
+    .split(/\n+/).flatMap((line) => line.match(/[^.!?。！？؟]+[.!?。！？؟]?/g) ?? [])
+    .map((line) => line.replace(/^[—–-]\s*/, '').trim()).filter((line) => line.length > 1).slice(0, 3)
   const speakingPromptCards = [
     selectedSupport?.speakingPrompt,
     ...((selectedSupport?.vocabulary ?? []).slice(0, 2).map((word) => `Use “${word.spanish}” in a new sentence of your own.`)),
@@ -1762,7 +1773,7 @@ function App() {
                         <p>{completedLearnLessons.includes(selectedPlan.id) || selectedLessonContent?.questions.every((question, index) => planAnswers[index] === question.answer)
                           ? 'Lesson complete! Your progress is saved.'
                           : 'Review the passage and try again. Get every question right to complete this lesson.'}</p>
-                        {!selectedLessonContent?.questions.every((question, index) => planAnswers[index] === question.answer) && <button className="secondary-button" onClick={() => { setPlanAnswers([]); setPlanAnswersChecked(false) }}>Try again</button>}
+                        {!selectedLessonContent?.questions.every((question, index) => planAnswers[index] === question.answer) && <button className="secondary-button" onClick={() => { setQuizSeed(Math.floor(Math.random() * 2 ** 32)); setPlanAnswers([]); setPlanAnswersChecked(false) }}>Try again</button>}
                       </div>}
                   </article>
                   <article className="speaking-practice">
@@ -1770,6 +1781,23 @@ function App() {
                     <h3>Try saying these aloud in {learningLanguage}</h3>
                     <div className="speaking-prompt-grid">
                       {speakingPromptCards.map((prompt, index) => <p key={`${index}-${prompt}`}><span>{index + 1}</span>{prompt}</p>)}
+                    </div>
+                    <div className="speaking-prep">
+                      <h4>Everything you need for this prompt</h4>
+                      <ol className="speaking-steps">
+                        <li><strong>Listen first.</strong> Play the Part 3 passage and follow along with the transcript.</li>
+                        <li><strong>Learn the key words</strong> below, and say each one aloud after the audio.</li>
+                        <li><strong>Borrow from the passage.</strong> Reuse the model lines, changing a name, place or detail to make them yours.</li>
+                        <li><strong>Say your answer aloud</strong> at a slow, steady pace. Say it twice: once reading, once from memory.</li>
+                        <li><strong>Check yourself.</strong> Did you cover every part of the prompt? Record yourself on your phone and compare it with the audio.</li>
+                      </ol>
+                      {speakingModelLines.length > 0 && <div className="speaking-prep-block"><span className="eyebrow">MODEL LINES FROM THE PASSAGE</span>
+                        {speakingModelLines.map((line) => <div className="speaking-line" key={line}><span lang={targetLanguageCode} dir={targetTextDirection}>{line}</span><AudioControl phrase={line} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === line && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen" /></div>)}
+                      </div>}
+                      {selectedSupport && selectedSupport.vocabulary.length > 0 && <div className="speaking-prep-block"><span className="eyebrow">KEY WORDS AND MEANINGS</span>
+                        {selectedSupport.vocabulary.map((word) => <div className="speaking-line" key={word.spanish}><span><strong lang={targetLanguageCode} dir={targetTextDirection}>{word.spanish}</strong> — {word.english}</span><AudioControl phrase={word.spanish} language={learningLanguage} status={speechPlaybackStatus} isCurrent={activeSpeechText === word.spanish && activeSpeechLanguage === targetLanguageCode} onActivate={playActivityPhrase} label="Listen" /></div>)}
+                      </div>}
+                      {selectedSupport?.grammarNote && <div className="speaking-prep-block"><span className="eyebrow">GRAMMAR TO USE</span><p>{selectedSupport.grammarNote}</p></div>}
                     </div>
                   </article>
                 </div>

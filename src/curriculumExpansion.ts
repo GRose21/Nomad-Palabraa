@@ -82,11 +82,10 @@ export function buildExpandedLessons(
     const answers = [seed.question.correct, ...seed.question.distractors]
     const mainIdeaAnswers = [seed.mainIdea.correct, ...seed.mainIdea.distractors]
     const rotate = <T,>(items: T[], offset: number) => [...items.slice(offset), ...items.slice(0, offset)]
+    const otherTitles = seeds.filter((other) => other.level === seed.level && other.title !== seed.title).slice(index % 2, (index % 2) + 2).map((other) => other.title)
     const duration = lessonMinutes[seed.level]
     const languagePrefix = language === 'Spanish' ? 'Lee, escucha y practica' : 'Leggi, ascolta e fai pratica'
-    const speakingPrompt = language === 'Spanish'
-      ? `Resume “${seed.title}” en ${language} y explica qué detalle apoya mejor la idea principal.`
-      : `Riassumi “${seed.title}” in ${language} e spiega quale dettaglio sostiene meglio l’idea principale.`
+    const speakingPrompt = `Summarize “${seed.title}” aloud in ${language} in three or four sentences. Start with the main idea, add one detail from the first text, and finish with a question or opinion of your own. Use at least two of the lesson’s key words.`
     const listeningPrompt = language === 'Spanish'
       ? 'Escucha el texto e identifica la idea principal, los detalles que la apoyan y una condición importante.'
       : 'Ascolta il testo e individua l’idea principale, i dettagli che la sostengono e una condizione importante.'
@@ -117,12 +116,8 @@ export function buildExpandedLessons(
           answer: (2 - answerIndex) % 3,
         },
         {
-          prompt: language === 'Spanish' ? 'Author’s purpose · ¿Cuál es el propósito principal del texto?' : 'Author’s purpose · Qual è lo scopo principale del testo?',
-          options: [
-            language === 'Spanish' ? `Explicar ${seed.objective} con detalles y contexto.` : `Spiegare ${seed.objective} con dettagli e contesto.`,
-            language === 'Spanish' ? 'Enumerar hechos sin relación entre sí.' : 'Elencare fatti senza relazione tra loro.',
-            language === 'Spanish' ? 'Defender una conclusión que el texto no presenta.' : 'Difendere una conclusione che il testo non presenta.',
-          ],
+          prompt: 'Title · Which title best matches the first text?',
+          options: [seed.title, ...otherTitles],
           answer: 0,
         },
         {

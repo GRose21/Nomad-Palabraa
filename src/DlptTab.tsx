@@ -1,3 +1,4 @@
+import { shuffleResourceQuestions } from './quizShuffle'
 import { useState } from 'react'
 import type { CourseLevel } from './learnCourse'
 import type { Resource } from './resourceCatalog'
@@ -27,7 +28,7 @@ function DlptTab({ language, resources, lang, direction }: DlptTabProps) {
   const topics = [...new Set(resources.map((resource) => resource.topic).filter((topic): topic is Topic => Boolean(topic)))]
 
   const openPractice = (resource: Resource) => {
-    setSelected(resource)
+    setSelected(resource.comprehension ? { ...resource, comprehension: shuffleResourceQuestions(resource.comprehension) } : resource)
     setAnswers([])
     setChecked(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })

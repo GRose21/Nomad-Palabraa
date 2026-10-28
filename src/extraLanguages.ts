@@ -136,7 +136,7 @@ const profiles: Record<AddedLanguage, LanguageProfile> = {
     starter: ['مَرْحَبًا|hello', 'شُكْرًا|thank you', 'إِلَى اللِّقَاءِ|goodbye'],
     phrases: {
       A1: [
-        { target: 'مَرْحَبًا', english: 'hello', title: 'greeting someone' }, { target: 'اِسْمِي أَنَا', english: 'my name is Anna', title: 'introducing yourself' }, { target: 'هَذِهِ أُسْرَتِي', english: 'this is my family', title: 'talking about family' }, { target: 'هَذَا كِتَابٌ', english: 'this is a book', title: 'naming everyday objects' }, { target: 'أُحِبُّ شُرْبَ الشَّايِ', english: 'I like drinking tea', title: 'choosing food and drinks' }, { target: 'بِكَمْ هَذَا؟', english: 'how much is this?', title: 'asking a price' }, { target: 'السَّاعَةُ الثَّالِثَةُ الآنَ', english: 'it is three o’clock now', title: 'saying the time' }, { target: 'الْمَدْرَسَةُ أَمَامَنَا', english: 'the school is in front of us', title: 'finding places' }, { target: 'اِذْهَبْ مُبَاشَرَةً، مِنْ فَضْلِكَ', english: 'go straight, please', title: 'following directions' }, { target: 'أَدْرُسُ الْعَرَبِيَّةَ كُلَّ يَوْمٍ', english: 'I study Arabic every day', title: 'describing a daily activity' },
+        { target: 'مَرْحَبًا', english: 'hello', title: 'greeting someone' }, { target: 'اِسْمِي آنَا', english: 'my name is Anna', title: 'introducing yourself' }, { target: 'هَذِهِ أُسْرَتِي', english: 'this is my family', title: 'talking about family' }, { target: 'هَذَا كِتَابٌ', english: 'this is a book', title: 'naming everyday objects' }, { target: 'أُحِبُّ شُرْبَ الشَّايِ', english: 'I like drinking tea', title: 'choosing food and drinks' }, { target: 'بِكَمْ هَذَا؟', english: 'how much is this?', title: 'asking a price' }, { target: 'السَّاعَةُ الثَّالِثَةُ الآنَ', english: 'it is three o’clock now', title: 'saying the time' }, { target: 'الْمَدْرَسَةُ أَمَامَنَا', english: 'the school is in front of us', title: 'finding places' }, { target: 'اِذْهَبْ مُبَاشَرَةً، مِنْ فَضْلِكَ', english: 'go straight, please', title: 'following directions' }, { target: 'أَدْرُسُ الْعَرَبِيَّةَ كُلَّ يَوْمٍ', english: 'I study Arabic every day', title: 'describing a daily activity' },
       ],
       A2: [
         { target: 'أَسْتَيْقِظُ فِي السَّاعَةِ السَّابِعَةِ', english: 'I wake up at seven', title: 'describing a routine' }, { target: 'أُرِيدُ شِرَاءَ قَمِيصٍ', english: 'I want to buy a shirt', title: 'shopping for essentials' }, { target: 'مِنْ فَضْلِكَ، أَعْطِنِي طَبَقًا مِنَ الْأَرُزِّ', english: 'please give me a plate of rice', title: 'ordering a meal' }, { target: 'لِنَلْتَقِ فِي نِهَايَةِ الْأُسْبُوعِ', english: 'let us meet at the weekend', title: 'making plans' }, { target: 'مَتَى يَغَادِرُ الْقِطَارُ؟', english: 'when does the train leave?', title: 'travelling by train' }, { target: 'أُرِيدُ مَوْعِدًا مَعَ الطَّبِيبِ', english: 'I would like an appointment with the doctor', title: 'making an appointment' }, { target: 'فِي غُرْفَتِي نَافِذَةٌ كَبِيرَةٌ', english: 'there is a large window in my room', title: 'describing a home' }, { target: 'الْيَوْمُ أَبْرَدُ مِنَ الْأَمْسِ', english: 'today is colder than yesterday', title: 'talking about the weather' }, { target: 'ذَهَبْتُ إِلَى الْحَدِيقَةِ الأُسْبُوعَ الْمَاضِيَ', english: 'I went to the park last week', title: 'sharing a past event' }, { target: 'هَلْ يُمْكِنُكَ مُسَاعَدَتِي؟', english: 'could you help me?', title: 'making a polite request' },
@@ -213,6 +213,15 @@ const profiles: Record<AddedLanguage, LanguageProfile> = {
   },
 }
 
+const mainReadingQuestions = (name: string): Record<GrammarLevel, { prompt: string; options: string[] }> => ({
+  A1: { prompt: 'Main reading · What does the speaker do every day?', options: [`Studies ${name} at home`, 'Works in a shop', 'Travels abroad'] },
+  A2: { prompt: 'Main reading · What did the speaker do last week?', options: ['Took a train to a nearby city with a friend', 'Stayed home all week', 'Moved to a new house'] },
+  B1: { prompt: 'Main reading · What did the community decide to do?', options: ['Try a short trial first, then adjust the plan', 'Do nothing', 'Build everything immediately without changes'] },
+  B2: { prompt: 'Main reading · What does it say about evaluating the transport plan?', options: ['Look at average data and at how different communities are affected', 'Ignore differences between communities', 'Choose only the cheapest option'] },
+  C1: { prompt: 'Main reading · What does the report show about use of the service?', options: ['Use increased, but that does not directly prove lives improved', 'Use fell sharply', 'It proves that lives improved'] },
+  C2: { prompt: 'Main reading · What does the committee question?', options: ['Whether the current plan can deliver what it promises', 'Whether any reform is needed at all', 'Whether the data exists'] },
+})
+
 function buildPack(profile: LanguageProfile) {
   const grammarLessons: GrammarLesson[] = [
     ...levels.flatMap((level) => profile.grammar[level].map((topic, index) => ({
@@ -235,8 +244,9 @@ function buildPack(profile: LanguageProfile) {
     profile.phrases[level].map((phrase, index) => {
       const grammar = grammarLessons.find((lesson) => lesson.level === level)
       if (!grammar) throw new Error(`Missing ${level} grammar for ${profile.name}`)
-      const questionOptions = [phrase.target, profile.phrases[level][(index + 1) % 10].target, profile.phrases[level][(index + 2) % 10].target]
-      const answer = questionOptions.indexOf(phrase.target)
+      const otherPhrases = [profile.phrases[level][(index + 1) % 10], profile.phrases[level][(index + 2) % 10]]
+      const questionOptions = [phrase.target, ...otherPhrases.map((other) => other.target)]
+      const answer = 0
       return {
         id: `${profile.code}-course-${level.toLowerCase()}-${String(index + 1).padStart(2, '0')}`,
         level,
@@ -250,15 +260,17 @@ function buildPack(profile: LanguageProfile) {
         label: `${profile.name.toLocaleUpperCase()} · ${level} · ${phrase.title.toLocaleUpperCase()}`,
         passage: `${profile.script === 'Arab' ? phrase.target.replace(/\s*\([^)]*\)/g, '').trim() : phrase.target}\n\n${profile.reading[level]}\n\n${readingExtensions[profile.name][level]}`,
         questions: [
-          { prompt: `Which ${profile.name} expression means “${phrase.english}”?`, options: questionOptions, answer },
-          { prompt: 'Which level-appropriate reading develops this lesson?', options: ['The passage on the front of this lesson.', 'An unrelated list with no context.', 'No reading is provided.'], answer: 0 },
+          { prompt: `Which expression from the opening line of the passage means “${phrase.english}”?`, options: questionOptions, answer },
+          { prompt: 'What does the opening line of the passage mean?', options: [phrase.english, ...otherPhrases.map((other) => other.english)], answer: 0 },
+          { prompt: mainReadingQuestions(profile.name)[level].prompt, options: mainReadingQuestions(profile.name)[level].options, answer: 0 },
         ],
-        speakingPrompt: `Say “${phrase.target}” aloud, then use it in a sentence about ${phrase.title}.`,
+        speakingPrompt: `Read the opening line of the passage aloud: “${phrase.target}” (meaning: ${phrase.english}). Then say it again from memory and make one new ${profile.name} sentence about ${phrase.title}, reusing the same key words.`,
         listeningPrompt: `Listen for “${phrase.target}” and identify its meaning: ${phrase.english}.`,
       }
     }),
   )
 
+  const starterMeanings = [...profile.starter.map((entry) => entry.split('|')[1]), 'please', 'good morning']
   const starters: StarterLesson[] = profile.starter.map((item, index) => {
     const [target, english] = item.split('|')
     const readingPhrase = profile.script === 'Arab' ? target.replace(/\s*\([^)]*\)/g, '').trim() : target
@@ -266,12 +278,12 @@ function buildPack(profile: LanguageProfile) {
       title: ['First greetings', 'Polite words', 'Say goodbye'][index],
       detail: `Start learning ${profile.name} with essential words and sound practice.`,
       minutes: `${8 + index * 2} min`,
-      speakingPrompt: `Say ${target} aloud and practise using it in a short exchange.`,
+      speakingPrompt: `Say ${target} (meaning: ${english}) aloud three times, slowly and then at natural speed. Then use it in a two-line exchange with a partner or an imaginary friend.`,
       vocabulary: [{ spanish: target, english }],
       grammarFocus: 'First expressions',
       grammarExplanation: `Learn the complete expression ${target} as a useful phrase. Its meaning is “${english}.”`,
       passage: readingPhrase,
-      questions: [{ prompt: `What does “${target}” mean?`, options: [english, 'please', 'good morning'], answer: 0 }],
+      questions: [{ prompt: `What does “${target}” mean?`, options: [english, ...starterMeanings.filter((meaning) => meaning !== english).slice(0, 2)], answer: 0 }],
       listeningPrompt: `Listen for ${target}, then repeat the expression.`,
     }
   })
