@@ -669,3 +669,10 @@ main { grid-column: 2; min-width: 0; }
 :root[data-theme='dark'] .key-terms dt, :root[data-theme='dark'] .glossary-list dt { color: #a9c6f5; }
 :root[data-theme='dark'] .key-terms dd em, :root[data-theme='dark'] .glossary-list dd em { color: var(--muted); }
 :root[data-theme='dark'] .glossary-search input { background: var(--paper); color: var(--ink); border-color: var(--line); }
+.clipart { display: block; width: 100%; height: auto; border-radius: 14px; }
+.plan-card-clipart { max-height: 120px; margin-bottom: 10px; border: 2px solid #d9d3bf; }
+.chapter-clipart { width: 230px; border: 2px solid #1d5c52; box-shadow: 3px 3px 0 rgba(29,92,82,.2); }
+.textbook .chapter-banner { grid-template-columns: auto minmax(0, 1fr) auto; }
+.chapter-scene { display: none; }
+:root[data-theme='dark'] .clipart { filter: brightness(.95); }
+@media (max-width: 700px) { .chapter-clipart { grid-column: 1 / -1; width: 100%; max-width: 320px; justify-self: center; } }

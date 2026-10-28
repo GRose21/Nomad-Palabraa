@@ -26,6 +26,7 @@ import GrammarTab from './GrammarTab'
 import VocabularyTab from './VocabularyTab'
 import WritingTab from './WritingTab'
 import { KeyTerms, GrammarGlossary } from './GlossaryPanel'
+import { LessonClipart, clipThemeForLesson, greetingWord } from './Clipart'
 import { cultureNotes, emojiForGloss, sceneForLesson } from './pictures'
 import DlptTab from './DlptTab'
 import DlptListeningTab from './DlptListeningTab'
@@ -1699,6 +1700,7 @@ function App() {
                     <p>{selectedSupport?.objective ?? selectedPlan.detail}</p>
                     <div className="chapter-goals"><strong>In this chapter:</strong> vocabulary · grammar · reading · listening · speaking</div>
                   </div>
+                  <LessonClipart className="chapter-clipart" theme={clipThemeForLesson(selectedPlan.title)} word={greetingWord[learningLanguage] ?? 'Hi!'} />
                   <div className="chapter-scene" aria-hidden="true">{sceneForLesson(selectedPlan.title, selectedPlan.courseLevel).map((icon) => <span key={icon}>{icon}</span>)}</div>
                   <CourseLevelBadge level={selectedPlan.courseLevel} />
                 </header>
@@ -1802,7 +1804,7 @@ function App() {
                       const isComplete = completedLearnLessons.includes(item.id)
                       const isNext = nextLearnLesson?.id === item.id
                       return <article className={`course-plan-card${isComplete ? ' complete' : ''}${isNext ? ' next' : ''}`} key={item.id} onClick={() => startPlan(item)}>
-                        <div className="plan-card-art" aria-hidden="true">{sceneForLesson(item.title, item.courseLevel).map((icon) => <span key={icon}>{icon}</span>)}</div>
+                        <LessonClipart className="plan-card-clipart" theme={clipThemeForLesson(item.title)} word={greetingWord[learningLanguage] ?? 'Hi!'} />
                         <span>{isComplete ? '✓ COMPLETE' : isNext ? 'START HERE' : `LESSON ${String(index + 1).padStart(2, '0')}`}</span>
                         <h4>{item.title}</h4>
                         <p>{item.detail}</p>
